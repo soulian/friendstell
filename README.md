@@ -45,3 +45,4 @@ npm run dev
 
 > 저장소 이름을 `사용자명.github.io` 로 만들면 루트(`https://사용자명.github.io/`)에 배포됩니다.  
 > 그 경우 `.github/workflows/deploy.yml` 의 `BASE_PATH` 를 `'/'` 로 바꿔야 합니다.
+# friends-tell
