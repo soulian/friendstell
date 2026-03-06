@@ -1,0 +1,37 @@
+.post-write {
+  padding: 16px 20px;
+}
+
+.hitel-hint {
+  font-size: 12px;
+  color: #8090b0;
+  margin: -4px 0 12px;
+}
+
+.hitel-write-form label {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.hitel-write-form label span {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: var(--hitel-text);
+}
+
+.hitel-error {
+  color: var(--hitel-highlight-yellow);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+.hitel-ok {
+  color: var(--hitel-highlight-green);
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+
+.hitel-form-actions {
+  margin-top: 20px;
+}

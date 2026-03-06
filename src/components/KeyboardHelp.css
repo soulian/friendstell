@@ -1,0 +1,26 @@
+.keyboard-help {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--hitel-text);
+  border-top: 1px solid var(--hitel-border);
+  background: var(--hitel-paper);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  z-index: 100;
+  max-width: 720px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.keyboard-help span {
+  white-space: nowrap;
+}
+
+.hitel-footer-bar {
+  margin-bottom: 0;
+}

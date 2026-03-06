@@ -1,0 +1,150 @@
+/* Neo둥근모 웹폰트 (noonnu CDN) */
+@font-face {
+  font-family: 'NeoDunggeunmo';
+  src: url('https://cdn.jsdelivr.net/npm/@noonnu/neodunggeunmo@0.0.1/NeoDunggeunmo.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* 하이텔 스크린샷 컬러 팔레트 */
+:root {
+  --hitel-bg: #000080;
+  --hitel-bg-alt: #000070;
+  --hitel-paper: #000068;
+  --hitel-input-bg: #000030;
+
+  --hitel-text: #e0e8ff;
+  --hitel-text-bright: #ffffff;
+
+  --hitel-highlight-green: #3c7f3c;
+  --hitel-highlight-green-text: #ffffff;
+
+  --hitel-highlight-purple: #800080;
+  --hitel-highlight-purple-text: #ffffff;
+
+  --hitel-highlight-yellow: #ffff00;
+
+  --hitel-border: #4040c0;
+  --hitel-link: #ffff00;
+  --hitel-link-visited: #c0c0ff;
+
+  --hitel-font: 'NeoDunggeunmo', 'Courier New', Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--hitel-bg);
+  background-image: linear-gradient(180deg, var(--hitel-bg) 0%, var(--hitel-bg-alt) 100%);
+  color: var(--hitel-text-bright);
+  font-family: var(--hitel-font);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: 56px; /* 키보드 안내 바 높이만큼 */
+}
+
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.retro-main {
+  min-height: 0;
+  flex: 1;
+}
+
+.hitel-card {
+  background: var(--hitel-paper);
+  border: 1px solid var(--hitel-border);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.hitel-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 12px 0 8px;
+  color: var(--hitel-text-bright);
+}
+
+.hitel-section-basic {
+  background: var(--hitel-highlight-green);
+  color: var(--hitel-highlight-green-text);
+  padding: 6px 12px;
+  margin: 16px 0 8px;
+  font-family: var(--hitel-font);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.hitel-section-basic:first-child {
+  margin-top: 0;
+}
+
+.hitel-section-community {
+  background: var(--hitel-highlight-purple);
+  color: var(--hitel-highlight-purple-text);
+  padding: 6px 12px;
+  margin: 16px 0 8px;
+  font-family: var(--hitel-font);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.hitel-btn {
+  font-family: var(--hitel-font);
+  font-size: 14px;
+  padding: 6px 14px;
+  border: 1px solid var(--hitel-border);
+  background: var(--hitel-input-bg);
+  color: var(--hitel-text-bright);
+  cursor: pointer;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.hitel-btn:hover {
+  background: var(--hitel-highlight-purple);
+  color: var(--hitel-highlight-yellow);
+  border-color: var(--hitel-highlight-yellow);
+}
+
+.hitel-input,
+.hitel-textarea {
+  font-family: var(--hitel-font);
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--hitel-border);
+  background: var(--hitel-input-bg);
+  color: var(--hitel-text-bright);
+  width: 100%;
+  margin-top: 4px;
+}
+
+.hitel-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.hitel-input::placeholder,
+.hitel-textarea::placeholder {
+  color: #6080a0;
+}
+
+.hitel-input:focus,
+.hitel-textarea:focus {
+  outline: none;
+  border-color: var(--hitel-highlight-yellow);
+  box-shadow: 0 0 0 1px var(--hitel-highlight-yellow);
+}

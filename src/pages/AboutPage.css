@@ -1,0 +1,25 @@
+.about-page {
+  padding: 20px;
+}
+
+.about-heading {
+  font-size: 1.2rem;
+  margin: 0 0 16px;
+  font-weight: 700;
+  background: var(--hitel-highlight-purple);
+  color: var(--hitel-highlight-purple-text);
+  padding: 8px 12px;
+}
+
+.about-body {
+  line-height: 1.8;
+}
+
+.about-body p {
+  margin: 0 0 12px;
+}
+
+.about-sign {
+  margin-top: 20px !important;
+  text-align: right;
+}

@@ -1,0 +1,82 @@
+.post-view {
+  padding: 16px 20px;
+}
+
+.hitel-article {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--hitel-border);
+}
+
+.hitel-post-title {
+  font-size: 1.1rem;
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: var(--hitel-text-bright);
+  border-left: 4px solid var(--hitel-highlight-yellow);
+  padding-left: 10px;
+}
+
+.hitel-post-meta {
+  font-size: 12px;
+  color: #8090b0;
+  margin-bottom: 12px;
+}
+
+.hitel-post-meta span + span {
+  margin-left: 12px;
+}
+
+.hitel-post-body {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.hitel-comments {
+  margin-top: 8px;
+}
+
+.hitel-comment-form {
+  margin: 12px 0 16px;
+}
+
+.hitel-comment-form label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.hitel-comment-form .hitel-textarea {
+  margin: 8px 0;
+}
+
+.hitel-comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.hitel-comment-item {
+  padding: 10px 12px;
+  border: 1px solid var(--hitel-border);
+  margin-bottom: 6px;
+  background: var(--hitel-input-bg);
+}
+
+.hitel-comment-author {
+  display: block;
+  font-size: 12px;
+  color: #8090b0;
+  margin-bottom: 4px;
+}
+
+.hitel-comment-body {
+  white-space: pre-wrap;
+}
+
+.hitel-post-missing {
+  padding: 24px;
+}
+
+.hitel-post-missing a {
+  color: var(--hitel-link);
+}

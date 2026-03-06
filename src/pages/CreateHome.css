@@ -1,0 +1,35 @@
+.create-home {
+  padding: 20px;
+}
+
+.create-home-desc {
+  color: var(--hitel-text);
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+.create-home-pw-hint {
+  font-size: 12px;
+  color: var(--hitel-text);
+  margin: 0 0 16px;
+}
+
+.create-home .hitel-form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hitel-btn-secondary {
+  background: transparent;
+  color: var(--hitel-text);
+}
+
+.hitel-link {
+  color: var(--hitel-link);
+  text-decoration: none;
+}
+
+.hitel-link:hover {
+  text-decoration: underline;
+}
