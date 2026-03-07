@@ -165,3 +165,45 @@ export function addComment(homeId, boardId, postId, { body, author }) {
   saveData(data)
   return comment
 }
+
+function normalizeAuthor(author) {
+  if (typeof author !== 'string') return ''
+  return author.trim()
+}
+
+/**
+ * homeId 기준 유니크 작성자 목록(닉네임 문자열 기준)을 반환한다.
+ * 현재 제품에는 userId가 없으므로 동일 닉네임은 같은 사용자로 본다.
+ */
+export function getHomeUniqueAuthors(homeId, options = {}) {
+  const { includeComments = true, excludedBoards = ['notice'] } = options
+  const data = loadData()
+  const excludedBoardSet = new Set(excludedBoards)
+  const authors = new Set()
+
+  Object.entries(data.posts || {}).forEach(([key, posts]) => {
+    const [postHomeId, boardId] = key.split(':')
+    if (postHomeId !== homeId || excludedBoardSet.has(boardId)) return
+    const postList = posts || []
+    postList.forEach((post) => {
+      const author = normalizeAuthor(post?.author)
+      if (author) authors.add(author)
+    })
+  })
+
+  if (!includeComments) {
+    return Array.from(authors)
+  }
+
+  Object.entries(data.comments || {}).forEach(([key, comments]) => {
+    const [commentHomeId, boardId] = key.split(':')
+    if (commentHomeId !== homeId || excludedBoardSet.has(boardId)) return
+    const commentList = comments || []
+    commentList.forEach((comment) => {
+      const author = normalizeAuthor(comment?.author)
+      if (author) authors.add(author)
+    })
+  })
+
+  return Array.from(authors)
+}

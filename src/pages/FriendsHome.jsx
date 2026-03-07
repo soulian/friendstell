@@ -3,6 +3,7 @@ import { Link, useParams, Navigate, useNavigate } from 'react-router-dom'
 import {
   getHome,
   getPosts,
+  getHomeUniqueAuthors,
   updateHome,
 } from '../data/mock'
 import './FriendsHome.css'
@@ -77,6 +78,28 @@ export default function FriendsHome() {
   const freeCount = getPosts(homeId, 'free').length
   const newsCount = getPosts(homeId, 'news').length
   const tempCount = getPosts(homeId, 'temp').length
+  const uniqueAuthors = getHomeUniqueAuthors(homeId)
+  const uniqueWriterCount = uniqueAuthors.length
+  const maxCampers = 8
+  const camperCount = Math.min(uniqueWriterCount, maxCampers)
+  const campfireStage = uniqueWriterCount === 0 ? 'empty' : (camperCount >= maxCampers ? 'max' : 'growth')
+  const warmthPercent = Math.round((camperCount / maxCampers) * 100)
+  const stageMessage = campfireStage === 'empty'
+    ? '아직 조용한 밤이에요. 첫 이야기를 남겨 보세요.'
+    : campfireStage === 'max'
+      ? '오늘 밤 캠프파이어가 가장 밝게 타오르고 있어요!'
+      : `친구들의 이야기로 불씨가 자라고 있어요. (${camperCount}/${maxCampers})`
+  const campfireSummary = `캠프파이어 성장 상태: 유니크 작성자 ${uniqueWriterCount}명, 표시 캐릭터 ${camperCount}명, 온기 ${warmthPercent}%`
+  const camperSeatClasses = [
+    'is-seat-1',
+    'is-seat-2',
+    'is-seat-3',
+    'is-seat-4',
+    'is-seat-5',
+    'is-seat-6',
+    'is-seat-7',
+    'is-seat-8',
+  ]
 
   return (
     <div className="friends-home hitel-card">
@@ -114,6 +137,43 @@ export default function FriendsHome() {
           </li>
         </ul>
       </div>
+
+      <section className={`friends-home-campfire is-${campfireStage}`} aria-label={campfireSummary}>
+        <h3 className="hitel-title">[ 오늘의 캠프파이어 ]</h3>
+        <p className="friends-home-campfire-copy">
+          홈을 방문한 친구가 글이나 댓글을 남기면 모닥불 주변 친구가 늘어납니다.
+        </p>
+        <div className="friends-home-campfire-scene" aria-hidden="true">
+          <div className="friends-home-stars">
+            <span className="friends-home-star is-star-1">*</span>
+            <span className="friends-home-star is-star-2">*</span>
+            <span className="friends-home-star is-star-3">*</span>
+            {campfireStage !== 'empty' && <span className="friends-home-star is-star-4">*</span>}
+            {campfireStage === 'max' && <span className="friends-home-star is-star-5">*</span>}
+          </div>
+          <div className="friends-home-campers">
+            {Array.from({ length: camperCount }).map((_, index) => (
+              <span
+                key={`camper-${index}`}
+                className={`friends-home-camper ${camperSeatClasses[index]}`}
+              />
+            ))}
+          </div>
+          <div className="friends-home-fire-wrap">
+            <span className="friends-home-firewood" />
+            <span className="friends-home-flame is-flame-main" />
+            <span className="friends-home-flame is-flame-sub" />
+          </div>
+        </div>
+        <p className="friends-home-campfire-status">{stageMessage}</p>
+        <div className="friends-home-campfire-metrics">
+          <strong>유니크 작성자 {uniqueWriterCount}명</strong>
+          <span>표시 캐릭터 {camperCount}명 (최대 {maxCampers}명)</span>
+        </div>
+        <div className="friends-home-campfire-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={warmthPercent}>
+          <div className="friends-home-campfire-progress-bar" style={{ width: `${warmthPercent}%` }} />
+        </div>
+      </section>
 
       <section className="friends-home-settings">
         <h3 className="hitel-title">[ 설정 ]</h3>
