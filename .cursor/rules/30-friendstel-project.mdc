@@ -1,0 +1,13 @@
+---
+description: 프렌즈텔 프로젝트 전용 규칙 — 데이터 키·라우팅·UI 패턴
+alwaysApply: true
+---
+
+# 프렌즈텔 프로젝트
+
+- **단위**: 모든 데이터는 **homeId** 기준. 게시판·글·댓글 키는 `homeId:boardId` 또는 `homeId:boardId:postId` 형태.
+- **데이터 계층**: `src/data/mock.js`만 localStorage/sessionStorage 접근. 새 저장 키·스키마 추가 시 기존 키와 충돌하지 않게 하고, 필요 시 `docs/runbooks/DEPLOY.md` 롤백 항목에 호환성 안내 추가.
+- **라우팅**: `/create`, `/home/:homeId`, `/home/:homeId/about`, `/home/:homeId/board/:boardId`, `/home/:homeId/board/:boardId/post/:postId`, `/home/:homeId/board/:boardId/write`. 새 페이지는 이 패턴과 `App.jsx` 라우트에 맞춰 추가.
+- **UI**: 하이텔 레트로 톤 유지. 키보드 단축키(1~5, N, Enter, ↑↓, Tab, Esc) 동작 유지. `KeyboardHelp` 하단 안내와 실제 동작 일치시키기.
+- **보안·비밀번호**: 운영자 비밀번호(`OPERATOR_PASSWORD`), 프렌즈홈 비밀번호(`getHomeBoardPassword`/`setHomeBoardPassword`), 기본값(`DEFAULT_BOARD_PASSWORD`)은 `mock.js`에서 관리. 변경 시 문서·릴리즈 노트 반영.
+- **문서**: 동작·API·배포 방식 변경 시 `docs/prd/`, `docs/runbooks/`, `docs/adr/` 중 해당 문서 갱신.

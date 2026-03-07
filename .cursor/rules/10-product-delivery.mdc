@@ -1,0 +1,11 @@
+---
+description: Product delivery standards for features, experiments, and UX work
+alwaysApply: true
+---
+
+- Preserve product intent: user problem, scope, acceptance criteria, and out-of-scope.
+- For UI work, include empty/loading/error/success/permission-denied states.
+- For risky product changes, prefer flags and staged rollout.
+- For experiments, define hypothesis, primary metric, guardrails, and stop conditions.
+- Every user-visible change should consider analytics and logging requirements.
+- If a change materially alters behavior, update docs/prd and link the changed decision.

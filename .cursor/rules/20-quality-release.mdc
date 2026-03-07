@@ -1,0 +1,12 @@
+---
+description: Quality, release, and operational safety rules
+alwaysApply: true
+---
+
+- Run the narrowest meaningful tests after changes.
+- Do not weaken tests, lint rules, or type checks to make a change pass.
+- For config, env, auth, payment, infra, or database changes, include rollback notes.
+- For schema migrations, separate migration safety from feature logic when feasible.
+- Favor observability: logs, errors, and key metrics should make failures diagnosable.
+- Treat preview validation as required for UI-affecting work.
+- Ship only when Definition of Done is satisfied.
