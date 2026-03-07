@@ -43,6 +43,22 @@
 - **에러 바운더리**: React 에러 바운더리 + 폴백 UI
 - **로딩·빈 상태**: 모든 목록·상세 화면에 로딩·빈 상태 명시
 
+### 2.5 Bug Backlog
+
+- **BUG-001 · Vercel 배포 링크 새로고침 시 에러 화면 노출**
+  - **문제 요약**: Vercel에 배포된 프렌즈텔 URL에서 상세 경로(예: `/home/:homeId/board/:boardId`, `/home/:homeId/board/:boardId/post/:postId`) 상태로 브라우저 새로고침 시 에러/404 화면이 노출된다.
+  - **재현 절차**:
+    1. Vercel 배포 URL로 접속 후 게시판/게시글 상세 페이지로 이동한다.
+    2. 해당 경로에서 브라우저 새로고침(F5) 또는 주소창 재진입을 수행한다.
+    3. 앱이 아닌 에러 화면(404 등)이 표시된다.
+  - **기대 동작**: 어떤 클라이언트 라우트에서 새로고침해도 `index.html` 폴백 후 React Router가 정상 렌더링한다.
+  - **영향도**: 공유 링크 진입성과 신뢰도가 떨어지며, 모바일 인앱 브라우저/메신저 재진입 시 이탈 가능성이 높다.
+  - **가설 원인**: Vercel의 SPA rewrite/fallback 설정 부재(`vercel.json` 미구성) 가능성이 높다.
+  - **우선순위**: P1 (배포 안정성)
+  - **완료 기준(AC)**:
+    - Vercel 배포본에서 `/home/:homeId`, `/home/:homeId/about`, `/home/:homeId/board/:boardId`, `/home/:homeId/board/:boardId/post/:postId`, `/home/:homeId/board/:boardId/write` 경로를 직접 진입/새로고침해도 정상 렌더링된다.
+    - 원인 및 대응 방법이 `docs/runbooks/DEPLOY.md`에 반영된다.
+
 ---
 
 ## 3. 새 아이디어 처리 절차
