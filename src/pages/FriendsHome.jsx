@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link, useParams, Navigate, useNavigate } from 'react-router-dom'
 import {
   getHome,
   getPosts,
   getHomeUniqueAuthors,
-  updateHome,
 } from '../data/mock'
 import './FriendsHome.css'
 
@@ -12,8 +11,6 @@ export default function FriendsHome() {
   const { homeId } = useParams()
   const navigate = useNavigate()
   const home = getHome(homeId)
-  const [editingTitle, setEditingTitle] = useState(false)
-  const [editTitleValue, setEditTitleValue] = useState('')
   const menuRef = useRef(null)
 
   useEffect(() => {
@@ -60,16 +57,6 @@ export default function FriendsHome() {
     }
   }
 
-  const handleSaveTitle = (e) => {
-    e.preventDefault()
-    const t = editTitleValue.trim()
-    if (t) {
-      updateHome(homeId, { title: t })
-      setEditingTitle(false)
-      setEditTitleValue('')
-    }
-  }
-
   if (!home) {
     return <Navigate to="/create" replace />
   }
@@ -80,25 +67,17 @@ export default function FriendsHome() {
   const tempCount = getPosts(homeId, 'temp').length
   const uniqueAuthors = getHomeUniqueAuthors(homeId)
   const uniqueWriterCount = uniqueAuthors.length
-  const maxCampers = 8
-  const camperCount = Math.min(uniqueWriterCount, maxCampers)
-  const campfireStage = uniqueWriterCount === 0 ? 'empty' : (camperCount >= maxCampers ? 'max' : 'growth')
-  const warmthPercent = Math.round((camperCount / maxCampers) * 100)
-  const stageMessage = campfireStage === 'empty'
-    ? '아직 조용한 밤이에요. 첫 이야기를 남겨 보세요.'
-    : campfireStage === 'max'
-      ? '오늘 밤 캠프파이어가 가장 밝게 타오르고 있어요!'
-      : `친구들의 이야기로 불씨가 자라고 있어요. (${camperCount}/${maxCampers})`
-  const campfireSummary = `캠프파이어 성장 상태: 유니크 작성자 ${uniqueWriterCount}명, 표시 캐릭터 ${camperCount}명, 온기 ${warmthPercent}%`
-  const camperSeatClasses = [
+  const friendAvatarCount = Math.min(uniqueWriterCount, 4)
+  const miniroomMood = uniqueWriterCount === 0 ? 'quiet' : uniqueWriterCount >= 4 ? 'busy' : 'warm'
+  const miniroomSummary = uniqueWriterCount === 0
+    ? '아직 방문한 친구가 없어요. 첫 글을 남겨 친구를 초대해 보세요.'
+    : `오늘 방문한 친구 ${uniqueWriterCount}명과 함께 미니룸이 더 활기차졌어요.`
+  const avatarSeatClasses = [
+    'is-host',
     'is-seat-1',
     'is-seat-2',
     'is-seat-3',
     'is-seat-4',
-    'is-seat-5',
-    'is-seat-6',
-    'is-seat-7',
-    'is-seat-8',
   ]
 
   return (
@@ -138,80 +117,29 @@ export default function FriendsHome() {
         </ul>
       </div>
 
-      <section className={`friends-home-campfire is-${campfireStage}`} aria-label={campfireSummary}>
-        <h3 className="hitel-title">[ 오늘의 캠프파이어 ]</h3>
-        <p className="friends-home-campfire-copy">
-          홈을 방문한 친구가 글이나 댓글을 남기면 모닥불 주변 친구가 늘어납니다.
-        </p>
-        <div className="friends-home-campfire-scene" aria-hidden="true">
-          <div className="friends-home-stars">
-            <span className="friends-home-star is-star-1">*</span>
-            <span className="friends-home-star is-star-2">*</span>
-            <span className="friends-home-star is-star-3">*</span>
-            {campfireStage !== 'empty' && <span className="friends-home-star is-star-4">*</span>}
-            {campfireStage === 'max' && <span className="friends-home-star is-star-5">*</span>}
+      <section className={`friends-home-miniroom is-${miniroomMood}`} aria-label="싸이월드 감성 미니룸 그래픽">
+        <h3 className="hitel-title">[ 미니룸 ]</h3>
+        <div className="friends-home-miniroom-scene" aria-hidden="true">
+          <div className="friends-home-miniroom-wall">
+            <span className="friends-home-wall-frame is-frame-1" />
+            <span className="friends-home-wall-frame is-frame-2" />
+            <span className="friends-home-wall-window" />
           </div>
-          <div className="friends-home-campers">
-            {Array.from({ length: camperCount }).map((_, index) => (
+          <div className="friends-home-miniroom-floor" />
+          <span className="friends-home-miniroom-furniture is-sofa" />
+          <span className="friends-home-miniroom-furniture is-table" />
+          <span className="friends-home-miniroom-furniture is-plant" />
+          <div className="friends-home-miniroom-avatars">
+            {Array.from({ length: friendAvatarCount + 1 }).map((_, index) => (
               <span
-                key={`camper-${index}`}
-                className={`friends-home-camper ${camperSeatClasses[index]}`}
+                key={`mini-avatar-${index}`}
+                className={`friends-home-miniroom-avatar ${avatarSeatClasses[index]}`}
               />
             ))}
           </div>
-          <div className="friends-home-fire-wrap">
-            <span className="friends-home-firewood" />
-            <span className="friends-home-flame is-flame-main" />
-            <span className="friends-home-flame is-flame-sub" />
-          </div>
         </div>
-        <p className="friends-home-campfire-status">{stageMessage}</p>
-        <div className="friends-home-campfire-metrics">
-          <strong>유니크 작성자 {uniqueWriterCount}명</strong>
-          <span>표시 캐릭터 {camperCount}명 (최대 {maxCampers}명)</span>
-        </div>
-        <div className="friends-home-campfire-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={warmthPercent}>
-          <div className="friends-home-campfire-progress-bar" style={{ width: `${warmthPercent}%` }} />
-        </div>
+        <p className="friends-home-miniroom-status">{miniroomSummary}</p>
       </section>
-
-      <section className="friends-home-settings">
-        <h3 className="hitel-title">[ 설정 ]</h3>
-        <div className="friends-home-edit-title">
-          {editingTitle ? (
-            <form onSubmit={handleSaveTitle} className="friends-home-edit-form">
-              <input
-                type="text"
-                className="hitel-input"
-                value={editTitleValue}
-                onChange={(e) => setEditTitleValue(e.target.value)}
-                placeholder="프렌즈홈 이름"
-                maxLength={50}
-                autoFocus
-              />
-              <button type="submit" className="hitel-btn">저장</button>
-              <button type="button" className="hitel-btn hitel-btn-secondary" onClick={() => { setEditingTitle(false); setEditTitleValue(''); }}>
-                취소
-              </button>
-            </form>
-          ) : (
-            <p className="friends-home-setting-row">
-              <span>프렌즈홈 이름: {home.title}</span>
-              <button type="button" className="hitel-btn friends-home-btn-small" onClick={() => { setEditingTitle(true); setEditTitleValue(home.title); }}>
-                이름 수정
-              </button>
-            </p>
-          )}
-        </div>
-      </section>
-
-      <p className="hitel-footer">* 프렌즈텔 - 친구와 함께 쓰는 게시판</p>
-
-      <div className="friends-home-create-wrap">
-        <Link to="/create" className="hitel-btn friends-home-create-btn" data-shortcut="n">
-          [ 새 프렌즈홈 만들기 ]
-        </Link>
-      </div>
     </div>
   )
 }

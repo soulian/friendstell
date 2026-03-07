@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { getHomes, getHome } from '../data/mock'
+import { getHomes, getHome, updateHome } from '../data/mock'
 import './Header.css'
 
 export default function Header() {
@@ -11,6 +11,8 @@ export default function Header() {
   const currentHome = homeId ? getHome(homeId) : null
   const [open, setOpen] = useState(false)
   const [shareDone, setShareDone] = useState(false)
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [editTitleValue, setEditTitleValue] = useState('')
   const ref = useRef(null)
   const listRef = useRef(null)
 
@@ -21,6 +23,11 @@ export default function Header() {
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [])
+
+  useEffect(() => {
+    setEditingTitle(false)
+    setEditTitleValue('')
+  }, [homeId])
 
   const handleShare = (e) => {
     e.preventDefault()
@@ -58,6 +65,27 @@ export default function Header() {
     }
   }
 
+  const handleStartTitleEdit = () => {
+    if (!currentHome) return
+    setEditingTitle(true)
+    setEditTitleValue(currentHome.title)
+  }
+
+  const handleCancelTitleEdit = () => {
+    setEditingTitle(false)
+    setEditTitleValue('')
+  }
+
+  const handleSaveTitle = (e) => {
+    e.preventDefault()
+    if (!homeId) return
+    const nextTitle = editTitleValue.trim()
+    if (!nextTitle) return
+    updateHome(homeId, { title: nextTitle })
+    setEditingTitle(false)
+    setEditTitleValue('')
+  }
+
   return (
     <header className="hitel-header">
       <div className="retro-header-inner">
@@ -68,7 +96,34 @@ export default function Header() {
         <div className="header-title-row">
           {currentHome && (
             <>
-              <span className="header-home-title">{currentHome.title}</span>
+              {editingTitle ? (
+                <form className="header-title-edit-form" onSubmit={handleSaveTitle}>
+                  <input
+                    type="text"
+                    className="hitel-input header-title-edit-input"
+                    value={editTitleValue}
+                    onChange={(e) => setEditTitleValue(e.target.value)}
+                    maxLength={50}
+                    placeholder="프렌즈홈 이름"
+                    autoFocus
+                  />
+                  <button type="submit" className="hitel-btn header-title-edit-btn">저장</button>
+                  <button type="button" className="hitel-btn header-title-edit-btn header-title-edit-btn-cancel" onClick={handleCancelTitleEdit}>
+                    취소
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <span className="header-home-title">{currentHome.title}</span>
+                  <button
+                    type="button"
+                    className="header-title-edit-trigger"
+                    onClick={handleStartTitleEdit}
+                  >
+                    이름설정
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 className="header-share-btn"

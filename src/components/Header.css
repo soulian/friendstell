@@ -29,6 +29,44 @@
   white-space: nowrap;
 }
 
+.header-title-edit-trigger {
+  font-family: var(--hitel-font);
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 10px;
+  border: 1px solid var(--hitel-border);
+  background: var(--hitel-input-bg);
+  color: var(--hitel-text-bright);
+  cursor: pointer;
+}
+
+.header-title-edit-trigger:hover {
+  color: var(--hitel-highlight-yellow);
+  border-color: var(--hitel-highlight-yellow);
+}
+
+.header-title-edit-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.header-title-edit-input {
+  width: 170px;
+  margin-top: 0;
+  padding: 6px 8px;
+}
+
+.header-title-edit-btn {
+  font-size: 12px;
+  padding: 5px 9px;
+}
+
+.header-title-edit-btn-cancel {
+  color: var(--hitel-text);
+}
+
 .header-share-btn {
   display: inline-flex;
   align-items: center;
