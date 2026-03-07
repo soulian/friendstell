@@ -37,12 +37,29 @@ npm run preview
 ### SPA 404 처리
 - 워크플로에서 `cp dist/index.html dist/404.html` 로 미리 처리됨. GitHub Pages가 알 수 없는 경로를 404.html로 서빙해 클라이언트 라우팅이 동작함.
 
+## Vercel 배포
+
+1. Vercel 프로젝트를 저장소와 연결한다.
+2. 기본 빌드 명령은 `npm run build`, 산출물은 `dist/`를 사용한다.
+3. 저장소 루트의 `vercel.json`으로 SPA rewrite가 적용된다.
+
+### SPA 새로고침 처리 (Vercel)
+- `vercel.json`의 rewrite 설정으로 모든 경로를 `index.html`로 폴백한다.
+- 대상 라우트:
+  - `/home/:homeId`
+  - `/home/:homeId/about`
+  - `/home/:homeId/board/:boardId`
+  - `/home/:homeId/board/:boardId/post/:postId`
+  - `/home/:homeId/board/:boardId/write`
+- 기대 결과: 상세 경로 직접 진입/새로고침 시에도 React Router가 정상 렌더링한다.
+
 ## 롤백
 
 1. 배포 전 상태로 되돌릴 커밋 확인: `git log`
 2. 되돌리기: `git revert <commit>` 또는 `git reset --hard <commit>` 후 force push (팀 정책에 따름)
 3. `main`에 푸시하면 해당 커밋 기준으로 재배포됨
 4. **주의**: `src/data/mock.js` 스키마·키 변경 시 기존 사용자 localStorage와 불일치할 수 있음. 필요 시 마이그레이션 또는 안내 문구 고려.
+5. Vercel 라우팅 이슈가 생기면 `vercel.json`의 rewrite 변경 커밋을 우선 롤백한다.
 
 ## 환경·시크릿
 
