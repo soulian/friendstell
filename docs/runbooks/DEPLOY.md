@@ -64,4 +64,4 @@ npm run preview
 ## 환경·시크릿
 
 - 현재: 빌드 시점 환경 변수는 `BASE_PATH` 정도. 시크릿 없음.
-- 운영자 비밀번호·기본 게시판 비밀번호는 `src/data/mock.js` 내 상수. 변경 시 해당 파일 수정 후 배포.
+- 운영자 비밀번호는 `src/data/mock.js` 내 상수(`OPERATOR_PASSWORD`). 변경 시 해당 파일 수정 후 배포.
