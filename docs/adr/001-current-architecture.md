@@ -9,7 +9,7 @@ Accepted (현재 출시 버전 기준)
 
 ## 결정
 - **SPA**: React + React Router. Vite 빌드, 정적 호스팅(GitHub Pages).
-- **상태·영속**: 서버 없음. `src/data/mock.js`에서 localStorage(홈·글·댓글·비밀번호)·sessionStorage(닉네임·게시판 접근) 사용.
+- **상태·영속**: 서버 없음. `src/data/mock.js`에서 localStorage(홈·글·댓글)·sessionStorage(닉네임) 사용.
 - **라우팅**: `/home/:homeId`, `/home/:homeId/board/:boardId`, `home/:homeId/board/:boardId/post/:postId` 등. SPA 404 대응으로 `dist/404.html` 복사.
 - **배포**: GitHub Actions로 `main` 푸시 시 빌드 후 GitHub Pages에 배포. BASE_PATH는 저장소 이름에 따라 자동 설정.
 

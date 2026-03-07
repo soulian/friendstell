@@ -3,11 +3,7 @@ import { Link, useParams, Navigate, useNavigate } from 'react-router-dom'
 import {
   getHome,
   getPosts,
-  isBoardProtected,
   updateHome,
-  getHomeBoardPassword,
-  setHomeBoardPassword,
-  DEFAULT_BOARD_PASSWORD,
 } from '../data/mock'
 import './FriendsHome.css'
 
@@ -17,9 +13,6 @@ export default function FriendsHome() {
   const home = getHome(homeId)
   const [editingTitle, setEditingTitle] = useState(false)
   const [editTitleValue, setEditTitleValue] = useState('')
-  const [pwValue, setPwValue] = useState('')
-  const [pwConfirm, setPwConfirm] = useState('')
-  const [pwMessage, setPwMessage] = useState('')
   const menuRef = useRef(null)
 
   useEffect(() => {
@@ -76,23 +69,6 @@ export default function FriendsHome() {
     }
   }
 
-  const handleSetPassword = (e) => {
-    e.preventDefault()
-    setPwMessage('')
-    if (!pwValue.trim()) {
-      setPwMessage('비밀번호를 입력하세요.')
-      return
-    }
-    if (pwValue !== pwConfirm) {
-      setPwMessage('비밀번호가 일치하지 않습니다.')
-      return
-    }
-    setHomeBoardPassword(homeId, pwValue.trim())
-    setPwValue('')
-    setPwConfirm('')
-    setPwMessage('비밀번호가 설정되었습니다.')
-  }
-
   if (!home) {
     return <Navigate to="/create" replace />
   }
@@ -101,7 +77,6 @@ export default function FriendsHome() {
   const freeCount = getPosts(homeId, 'free').length
   const newsCount = getPosts(homeId, 'news').length
   const tempCount = getPosts(homeId, 'temp').length
-  const currentPw = getHomeBoardPassword(homeId)
 
   return (
     <div className="friends-home hitel-card">
@@ -129,12 +104,12 @@ export default function FriendsHome() {
           </li>
           <li role="none">
             <Link to={`/home/${homeId}/board/news`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              {isBoardProtected('news') && '🔑 '}4. {home.title} 소식({newsCount})
+              4. {home.title} 소식({newsCount})
             </Link>
           </li>
           <li role="none">
             <Link to={`/home/${homeId}/board/temp`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              {isBoardProtected('temp') && '🔑 '}5. 임시 게시판({tempCount})
+              5. 임시 게시판({tempCount})
             </Link>
           </li>
         </ul>
@@ -167,37 +142,6 @@ export default function FriendsHome() {
               </button>
             </p>
           )}
-        </div>
-        <div className="friends-home-password">
-          <p className="friends-home-setting-row friends-home-pw-info">
-            4·5번 게시판 초기 비밀번호: <strong>{DEFAULT_BOARD_PASSWORD}</strong> (변경하려면 아래에서 설정)
-          </p>
-          <form onSubmit={handleSetPassword} className="friends-home-pw-form">
-            <label>
-              <span>새 비밀번호 {currentPw ? '(변경)' : '(설정)'}</span>
-              <input
-                type="password"
-                className="hitel-input"
-                value={pwValue}
-                onChange={(e) => setPwValue(e.target.value)}
-                placeholder={currentPw ? '현재 설정됨' : DEFAULT_BOARD_PASSWORD}
-                autoComplete="new-password"
-              />
-            </label>
-            <label>
-              <span>비밀번호 확인</span>
-              <input
-                type="password"
-                className="hitel-input"
-                value={pwConfirm}
-                onChange={(e) => setPwConfirm(e.target.value)}
-                placeholder="다시 입력"
-                autoComplete="new-password"
-              />
-            </label>
-            {pwMessage && <p className="hitel-error">{pwMessage}</p>}
-            <button type="submit" className="hitel-btn">비밀번호 {currentPw ? '변경' : '설정'}</button>
-          </form>
         </div>
       </section>
 

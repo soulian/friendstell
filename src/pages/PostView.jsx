@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useParams, Navigate } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import {
   getPost,
   getComments,
@@ -8,8 +8,6 @@ import {
   getBoardDisplayName,
   getStoredNickname,
   setStoredNickname,
-  isBoardProtected,
-  getStoredHomeAccess,
 } from '../data/mock'
 import './PostView.css'
 
@@ -17,12 +15,6 @@ export default function PostView() {
   const { homeId, boardId, postId } = useParams()
   const boardName = getBoardDisplayName(homeId, boardId)
   const [post, setPost] = useState(null)
-  const protectedBoard = isBoardProtected(boardId)
-  const hasAccess = !protectedBoard || getStoredHomeAccess(homeId)
-
-  if (protectedBoard && !hasAccess) {
-    return <Navigate to={`/home/${homeId}/board/${boardId}`} replace />
-  }
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [commentNickname, setCommentNickname] = useState('')

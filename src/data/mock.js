@@ -35,7 +35,6 @@ export function createHome({ title }) {
     id,
     title: (title || '').trim() || '이름 없는 프렌즈홈',
     createdAt: Date.now(),
-    password: null,
   }
   homes.unshift(home)
   saveHomes(homes)
@@ -58,70 +57,6 @@ export const BOARD_IDS = {
   free: '자유게시판',
   news: '소식',
   temp: '임시 게시판',
-}
-
-export const PROTECTED_BOARDS = ['news', 'temp']
-
-export function isBoardProtected(boardId) {
-  return PROTECTED_BOARDS.includes(boardId)
-}
-
-/** 프렌즈홈별 비밀번호 (homeId → 비밀번호). 생성 시 설정하거나 기본값 */
-const HOME_PASSWORDS_KEY = 'friends_tell_home_passwords'
-
-function loadHomePasswords() {
-  try {
-    const raw = localStorage.getItem(HOME_PASSWORDS_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch (_) {}
-  return {}
-}
-
-function saveHomePasswords(obj) {
-  try {
-    localStorage.setItem(HOME_PASSWORDS_KEY, JSON.stringify(obj))
-  } catch (_) {}
-}
-
-export function getHomeBoardPassword(homeId) {
-  return loadHomePasswords()[homeId] || null
-}
-
-export function setHomeBoardPassword(homeId, password) {
-  const obj = loadHomePasswords()
-  obj[homeId] = password || null
-  saveHomePasswords(obj)
-}
-
-/** 4·5번 게시판 미설정 시 사용하는 초기 비밀번호 */
-export const DEFAULT_BOARD_PASSWORD = 'friends'
-
-export function checkHomeBoardPassword(homeId, input) {
-  const pw = getHomeBoardPassword(homeId)
-  if (pw) return input === pw
-  return input === DEFAULT_BOARD_PASSWORD
-}
-
-const HOME_ACCESS_KEY = 'friends_tell_home_access'
-
-export function getStoredHomeAccess(homeId) {
-  try {
-    const raw = sessionStorage.getItem(HOME_ACCESS_KEY)
-    if (!raw) return false
-    const obj = JSON.parse(raw)
-    return !!obj[homeId]
-  } catch (_) {
-    return false
-  }
-}
-
-export function setHomeBoardAccess(homeId) {
-  try {
-    const raw = sessionStorage.getItem(HOME_ACCESS_KEY)
-    const obj = raw ? JSON.parse(raw) : {}
-    obj[homeId] = true
-    sessionStorage.setItem(HOME_ACCESS_KEY, JSON.stringify(obj))
-  } catch (_) {}
 }
 
 export const OPERATOR_PASSWORD = 'village2024'

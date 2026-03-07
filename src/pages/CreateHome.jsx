@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { createHome, getHomes, DEFAULT_BOARD_PASSWORD } from '../data/mock'
+import { createHome, getHomes } from '../data/mock'
 import './CreateHome.css'
 
 export default function CreateHome() {
@@ -27,7 +27,6 @@ export default function CreateHome() {
     <div className="create-home hitel-card">
       <h2 className="hitel-section-basic">[ 새 프렌즈홈 만들기 ]</h2>
       <p className="create-home-desc">친구와 함께 쓸 게시판의 이름을 정해주세요.</p>
-      <p className="create-home-pw-hint">4·5번 게시판 초기 비밀번호: <strong>{DEFAULT_BOARD_PASSWORD}</strong> (생성 후 메인 화면 설정에서 변경 가능)</p>
       <form onSubmit={handleSubmit} className="hitel-write-form">
         <label>
           <span>프렌즈홈 제목</span>

@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams, Navigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   addPost,
   checkOperatorPassword,
   getStoredNickname,
   setStoredNickname,
-  isBoardProtected,
-  getStoredHomeAccess,
 } from '../data/mock'
 import './PostWrite.css'
 
@@ -14,12 +12,6 @@ export default function PostWrite() {
   const { homeId, boardId } = useParams()
   const navigate = useNavigate()
   const isNotice = boardId === 'notice'
-  const protectedBoard = isBoardProtected(boardId)
-  const hasAccess = !protectedBoard || getStoredHomeAccess(homeId)
-
-  if (protectedBoard && !hasAccess) {
-    return <Navigate to={`/home/${homeId}/board/${boardId}`} replace />
-  }
 
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
@@ -38,16 +30,16 @@ export default function PostWrite() {
     e.preventDefault()
 
     if (isNotice && !passwordChecked) {
-        if (!operatorPw.trim()) {
-          setOperatorError('운영자 비밀번호를 입력하세요.')
-          return
-        }
-        if (!checkOperatorPassword(operatorPw.trim())) {
-          setOperatorError('비밀번호가 일치하지 않습니다.')
-          return
-        }
-        setOperatorError('')
-        setPasswordChecked(true)
+      if (!operatorPw.trim()) {
+        setOperatorError('운영자 비밀번호를 입력하세요.')
+        return
+      }
+      if (!checkOperatorPassword(operatorPw.trim())) {
+        setOperatorError('비밀번호가 일치하지 않습니다.')
+        return
+      }
+      setOperatorError('')
+      setPasswordChecked(true)
       return
     }
 

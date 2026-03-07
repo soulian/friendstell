@@ -75,37 +75,3 @@
 .hitel-actions .hitel-btn {
   text-decoration: none;
 }
-
-.board-unlock {
-  padding: 20px;
-}
-
-.board-unlock-desc {
-  margin: 12px 0 20px;
-  color: var(--hitel-text);
-  font-size: 14px;
-}
-
-.board-unlock-form label {
-  display: block;
-  margin-bottom: 8px;
-}
-
-.board-unlock-form label span {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 12px;
-}
-
-.board-unlock-form .hitel-input {
-  max-width: 240px;
-  margin-top: 4px;
-}
-
-.board-unlock-form .hitel-error {
-  margin: 8px 0;
-}
-
-.board-unlock-form .hitel-btn {
-  margin-top: 12px;
-}
