@@ -9,30 +9,36 @@ export function usePageMeta() {
   const { pathname } = useLocation()
 
   useEffect(() => {
-    const match = pathname.match(/^\/home\/([^/]+)/)
-    const homeId = match?.[1]
-    const home = homeId ? getHome(homeId) : null
-
-    const title = home ? `프렌즈텔 - ${home.title}` : DEFAULT_TITLE
-    const description = home
-      ? `${home.title} - 친구와 함께 쓰는 프렌즈텔 게시판`
-      : DEFAULT_DESC
-
-    document.title = title
-
     const descEl = document.querySelector('meta[name="description"]')
-    if (descEl) descEl.setAttribute('content', description)
-
     const ogTitle = document.querySelector('meta[property="og:title"]')
-    if (ogTitle) ogTitle.setAttribute('content', title)
     const ogDesc = document.querySelector('meta[property="og:description"]')
-    if (ogDesc) ogDesc.setAttribute('content', description)
     const ogUrl = document.querySelector('meta[property="og:url"]')
-    if (ogUrl && typeof window !== 'undefined') {
-      ogUrl.setAttribute('content', window.location.origin + pathname)
+    let cancelled = false
+
+    const applyMeta = async () => {
+      const match = pathname.match(/^\/home\/([^/]+)/)
+      const homeId = match?.[1]
+      const home = homeId ? await getHome(homeId) : null
+      if (cancelled) return
+
+      const title = home ? `프렌즈텔 - ${home.title}` : DEFAULT_TITLE
+      const description = home
+        ? `${home.title} - 친구와 함께 쓰는 프렌즈텔 게시판`
+        : DEFAULT_DESC
+
+      document.title = title
+      if (descEl) descEl.setAttribute('content', description)
+      if (ogTitle) ogTitle.setAttribute('content', title)
+      if (ogDesc) ogDesc.setAttribute('content', description)
+      if (ogUrl && typeof window !== 'undefined') {
+        ogUrl.setAttribute('content', window.location.origin + pathname)
+      }
     }
 
+    applyMeta()
+
     return () => {
+      cancelled = true
       document.title = DEFAULT_TITLE
       if (descEl) descEl.setAttribute('content', DEFAULT_DESC)
       if (ogTitle) ogTitle.setAttribute('content', DEFAULT_TITLE)

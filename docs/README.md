@@ -10,7 +10,8 @@
 | **runbooks/RELEASE_CHECKLIST.md** | 머지·릴리스 전 체크리스트 (DoD 반영) |
 | **runbooks/DEPLOY.md** | 로컬 실행, 빌드, GitHub Pages 배포, 롤백 |
 | **backlog/CURRENT_AND_NEXT.md** | 현재 출시 슬라이스 정리 + 다음 스토리 후보 |
-| **adr/001-current-architecture.md** | 현재 아키텍처 (SPA + localStorage) |
+| **adr/001-current-architecture.md** | 초기 아키텍처 결정(서버 없는 SPA + localStorage) |
+| **adr/002-shared-db-with-local-fallback.md** | 공용 DB(Upstash Redis) + localStorage 폴백 아키텍처 |
 
 ## 새 기능 진행 순서
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { getHomes, getHome, updateHome } from '../data/mock'
 import './Header.css'
@@ -7,14 +7,29 @@ export default function Header() {
   const { pathname } = useLocation()
   const match = pathname.match(/^\/home\/([^/]+)/)
   const homeId = match ? match[1] : null
-  const homes = getHomes()
-  const currentHome = homeId ? getHome(homeId) : null
+  const [homes, setHomes] = useState([])
+  const [currentHome, setCurrentHome] = useState(null)
+  const [loadingHomes, setLoadingHomes] = useState(true)
   const [open, setOpen] = useState(false)
   const [shareDone, setShareDone] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
   const [editTitleValue, setEditTitleValue] = useState('')
+  const [savingTitle, setSavingTitle] = useState(false)
   const ref = useRef(null)
   const listRef = useRef(null)
+
+  const loadHeaderData = useCallback(async () => {
+    try {
+      const [nextHomes, nextHome] = await Promise.all([
+        getHomes(),
+        homeId ? getHome(homeId) : Promise.resolve(null),
+      ])
+      setHomes(nextHomes)
+      setCurrentHome(nextHome)
+    } finally {
+      setLoadingHomes(false)
+    }
+  }, [homeId])
 
   useEffect(() => {
     function close(e) {
@@ -28,6 +43,18 @@ export default function Header() {
     setEditingTitle(false)
     setEditTitleValue('')
   }, [homeId])
+
+  useEffect(() => {
+    loadHeaderData()
+  }, [loadHeaderData])
+
+  useEffect(() => {
+    const handleDataUpdated = () => {
+      loadHeaderData()
+    }
+    window.addEventListener('friends-data-updated', handleDataUpdated)
+    return () => window.removeEventListener('friends-data-updated', handleDataUpdated)
+  }, [loadHeaderData])
 
   const handleShare = (e) => {
     e.preventDefault()
@@ -76,14 +103,20 @@ export default function Header() {
     setEditTitleValue('')
   }
 
-  const handleSaveTitle = (e) => {
+  const handleSaveTitle = async (e) => {
     e.preventDefault()
     if (!homeId) return
     const nextTitle = editTitleValue.trim()
     if (!nextTitle) return
-    updateHome(homeId, { title: nextTitle })
-    setEditingTitle(false)
-    setEditTitleValue('')
+    setSavingTitle(true)
+    try {
+      await updateHome(homeId, { title: nextTitle })
+      await loadHeaderData()
+      setEditingTitle(false)
+      setEditTitleValue('')
+    } finally {
+      setSavingTitle(false)
+    }
   }
 
   return (
@@ -106,9 +139,12 @@ export default function Header() {
                     maxLength={50}
                     placeholder="프렌즈홈 이름"
                     autoFocus
+                    disabled={savingTitle}
                   />
-                  <button type="submit" className="hitel-btn header-title-edit-btn">저장</button>
-                  <button type="button" className="hitel-btn header-title-edit-btn header-title-edit-btn-cancel" onClick={handleCancelTitleEdit}>
+                  <button type="submit" className="hitel-btn header-title-edit-btn" disabled={savingTitle}>
+                    {savingTitle ? '저장중...' : '저장'}
+                  </button>
+                  <button type="button" className="hitel-btn header-title-edit-btn header-title-edit-btn-cancel" onClick={handleCancelTitleEdit} disabled={savingTitle}>
                     취소
                   </button>
                 </form>
@@ -145,7 +181,13 @@ export default function Header() {
               aria-haspopup="listbox"
               aria-label="프렌즈홈 선택"
             >
-              <span className="apt-name">{currentHome ? currentHome.title : (homes.length ? '프렌즈홈 선택' : '메뉴')}</span>
+              <span className="apt-name">
+                {loadingHomes
+                  ? '불러오는 중...'
+                  : currentHome
+                    ? currentHome.title
+                    : (homes.length ? '프렌즈홈 선택' : '메뉴')}
+              </span>
               <span className="apt-arrow">{open ? '▲' : '▼'}</span>
             </button>
             {open && (

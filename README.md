@@ -23,7 +23,17 @@ npm run dev
 - **퍼머링크 공유**: 프렌즈홈 제목 옆 🔗 버튼으로 현재 페이지 URL 복사. 카톡 등에 붙여넣기 시 OG 메타로 기본 제목·설명이 미리보기에 사용됩니다. (URL별 다른 미리보기는 서버에서 OG를 URL별로 제공해야 합니다.)
 - **공지사항**: 운영자 비밀번호 입력 후에만 글쓰기 가능 (기본: `village2024`, `src/data/mock.js`의 `OPERATOR_PASSWORD`에서 변경).
 - **4·5번(소식, 임시 게시판)**: 비밀번호 없이 바로 열람·글쓰기 가능.
-- **데이터**: 브라우저 **localStorage**(홈/글/댓글)와 **sessionStorage**(닉네임)에 저장.
+- **데이터**: 기본적으로 `/api/shared-data` 공용 DB를 사용해 **모든 사용자에게 같은 홈/게시판/글/댓글**을 보여줍니다. 공용 DB가 없거나 장애가 나면 자동으로 브라우저 **localStorage**(홈/글/댓글)로 폴백합니다. 닉네임은 **sessionStorage**를 사용합니다.
+
+## 공용 DB(모든 사용자 통합) 설정
+
+프렌즈텔을 Vercel에 배포하는 경우:
+
+1. Vercel 프로젝트에서 **Upstash Redis Integration**을 연결합니다.
+2. 환경변수 `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`이 설정되었는지 확인합니다.
+3. 배포 후 `/api/shared-data`가 200 응답하면 공용 DB 모드가 활성화됩니다.
+
+> 로컬 개발(`npm run dev`)에서는 Vite 단독 실행 시 `/api/shared-data`가 없으므로 localStorage 폴백 모드로 동작합니다.
 
 ## GitHub Pages 배포
 

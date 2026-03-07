@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link, useParams, Navigate, useNavigate } from 'react-router-dom'
 import {
   getHome,
@@ -10,8 +10,38 @@ import './FriendsHome.css'
 export default function FriendsHome() {
   const { homeId } = useParams()
   const navigate = useNavigate()
-  const home = getHome(homeId)
   const menuRef = useRef(null)
+  const [home, setHome] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [counts, setCounts] = useState({
+    notice: 0,
+    free: 0,
+    news: 0,
+    temp: 0,
+  })
+  const [uniqueWriterCount, setUniqueWriterCount] = useState(0)
+
+  const loadHomeData = useCallback(async () => {
+    setLoading(true)
+    const [nextHome, noticePosts, freePosts, newsPosts, tempPosts, uniqueAuthors] = await Promise.all([
+      getHome(homeId),
+      getPosts(homeId, 'notice'),
+      getPosts(homeId, 'free'),
+      getPosts(homeId, 'news'),
+      getPosts(homeId, 'temp'),
+      getHomeUniqueAuthors(homeId),
+    ])
+
+    setHome(nextHome)
+    setCounts({
+      notice: noticePosts.length,
+      free: freePosts.length,
+      news: newsPosts.length,
+      temp: tempPosts.length,
+    })
+    setUniqueWriterCount(uniqueAuthors.length)
+    setLoading(false)
+  }, [homeId])
 
   useEffect(() => {
     const handleKey = (e) => {
@@ -38,6 +68,18 @@ export default function FriendsHome() {
     return () => window.removeEventListener('keydown', handleKey, true)
   }, [homeId, navigate])
 
+  useEffect(() => {
+    loadHomeData()
+  }, [loadHomeData])
+
+  useEffect(() => {
+    const handleDataUpdated = () => {
+      loadHomeData()
+    }
+    window.addEventListener('friends-data-updated', handleDataUpdated)
+    return () => window.removeEventListener('friends-data-updated', handleDataUpdated)
+  }, [loadHomeData])
+
   const handleMenuKeyDown = (e) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return
     const container = menuRef.current
@@ -57,16 +99,18 @@ export default function FriendsHome() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="friends-home hitel-card">
+        <p className="hitel-hint">공용 프렌즈홈 데이터를 불러오는 중...</p>
+      </div>
+    )
+  }
+
   if (!home) {
     return <Navigate to="/create" replace />
   }
 
-  const noticeCount = getPosts(homeId, 'notice').length
-  const freeCount = getPosts(homeId, 'free').length
-  const newsCount = getPosts(homeId, 'news').length
-  const tempCount = getPosts(homeId, 'temp').length
-  const uniqueAuthors = getHomeUniqueAuthors(homeId)
-  const uniqueWriterCount = uniqueAuthors.length
   const friendAvatarCount = Math.min(uniqueWriterCount, 4)
   const miniroomMood = uniqueWriterCount === 0 ? 'quiet' : uniqueWriterCount >= 4 ? 'busy' : 'warm'
   const miniroomSummary = uniqueWriterCount === 0
@@ -87,7 +131,7 @@ export default function FriendsHome() {
         <ul className="hitel-menu-list" role="menu" aria-label="기본 메뉴">
           <li role="none">
             <Link to={`/home/${homeId}/board/notice`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              1. 공지사항({noticeCount})
+              1. 공지사항({counts.notice})
             </Link>
           </li>
           <li role="none">
@@ -101,17 +145,17 @@ export default function FriendsHome() {
         <ul className="hitel-menu-list" role="menu" aria-label="커뮤니티 메뉴">
           <li role="none">
             <Link to={`/home/${homeId}/board/free`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              3. 자유게시판({freeCount})
+              3. 자유게시판({counts.free})
             </Link>
           </li>
           <li role="none">
             <Link to={`/home/${homeId}/board/news`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              4. {home.title} 소식({newsCount})
+              4. {home.title} 소식({counts.news})
             </Link>
           </li>
           <li role="none">
             <Link to={`/home/${homeId}/board/temp`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              5. 임시 게시판({tempCount})
+              5. 임시 게시판({counts.temp})
             </Link>
           </li>
         </ul>
