@@ -8,6 +8,14 @@
       "destination": "/api/$1"
     },
     {
+      "source": "/home/:homeId",
+      "destination": "/api/og-meta?path=/home/:homeId&homeId=:homeId"
+    },
+    {
+      "source": "/home/:homeId/:rest*",
+      "destination": "/api/og-meta?path=/home/:homeId/:rest*&homeId=:homeId"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
