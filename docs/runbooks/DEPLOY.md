@@ -44,6 +44,7 @@ npm run preview
 2. 기본 빌드 명령은 `npm run build`, 산출물은 `dist/`를 사용한다.
 3. 저장소 루트의 `vercel.json`으로 SPA rewrite가 적용된다.
 4. 공용 DB를 쓰려면 Upstash Redis Integration을 연결하고 환경변수를 설정한다.
+5. OG 동적 미리보기는 Vercel 함수(`/api/og-meta`, `/api/og-image`)를 사용하므로, `/home/:homeId` 및 하위 경로 요청이 `vercel.json`에서 `og-meta`로 rewrite되는지 확인한다.
 
 ### 공용 DB 유지 정책 (중요)
 - 재배포 시 공용 DB를 초기화(키 삭제/flush)하지 않는다.
@@ -53,13 +54,16 @@ npm run preview
 
 ### SPA 새로고침 처리 (Vercel)
 - `vercel.json`에서 `/api/*`는 API 함수로 유지하고, 나머지 경로는 `index.html`로 폴백한다.
+- `/home/:homeId` 및 하위 경로는 `api/og-meta`를 거쳐 동적 OG 메타를 주입한 뒤 SPA 엔트리 HTML을 반환한다.
 - 대상 라우트:
   - `/home/:homeId`
   - `/home/:homeId/about`
   - `/home/:homeId/board/:boardId`
   - `/home/:homeId/board/:boardId/post/:postId`
   - `/home/:homeId/board/:boardId/write`
-- 기대 결과: 상세 경로 직접 진입/새로고침 시에도 React Router가 정상 렌더링한다.
+- 기대 결과:
+  - 상세 경로 직접 진입/새로고침 시에도 React Router가 정상 렌더링한다.
+  - 링크 프리뷰 크롤러가 상세 경로 접근 시 `og:image`에 홈 미니룸 이미지(`/api/og-image?homeId=...`)가 노출된다.
 
 ## 롤백
 
@@ -72,6 +76,7 @@ npm run preview
 6. 공용 DB 장애 시 임시 완화: Vercel 환경변수 `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`을 제거/비활성화하면 클라이언트가 localStorage 폴백 모드로 동작한다.
 7. 공용 DB 키(`friends_tell:shared_db:v1`) 스키마를 변경할 때는 `v2` 키를 병행 운영하고 이전 절차를 문서화한다.
 8. 공용 DB 유실 의심 시 `friends_tell:shared_db:v1:backup` 값을 먼저 확인하고, 필요하면 해당 값을 `friends_tell:shared_db:v1`로 복원한다.
+9. OG 동적 주입 장애(홈 경로 진입 실패/미리보기 깨짐) 시 `vercel.json`의 `/home/:homeId* -> /api/og-meta` rewrite를 롤백해 기존 `/index.html` 직결 경로로 즉시 복구한다.
 
 ## 환경·시크릿
 

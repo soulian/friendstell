@@ -13,6 +13,7 @@ export function usePageMeta() {
     const ogTitle = document.querySelector('meta[property="og:title"]')
     const ogDesc = document.querySelector('meta[property="og:description"]')
     const ogUrl = document.querySelector('meta[property="og:url"]')
+    const ogImage = document.querySelector('meta[property="og:image"]')
     let cancelled = false
 
     const applyMeta = async () => {
@@ -33,6 +34,12 @@ export function usePageMeta() {
       if (ogUrl && typeof window !== 'undefined') {
         ogUrl.setAttribute('content', window.location.origin + pathname)
       }
+      if (ogImage && typeof window !== 'undefined') {
+        const imagePath = homeId
+          ? `/api/og-image?homeId=${encodeURIComponent(homeId)}`
+          : '/api/og-image'
+        ogImage.setAttribute('content', window.location.origin + imagePath)
+      }
     }
 
     applyMeta()
@@ -43,6 +50,7 @@ export function usePageMeta() {
       if (descEl) descEl.setAttribute('content', DEFAULT_DESC)
       if (ogTitle) ogTitle.setAttribute('content', DEFAULT_TITLE)
       if (ogDesc) ogDesc.setAttribute('content', DEFAULT_DESC)
+      if (ogImage) ogImage.setAttribute('content', '')
     }
   }, [pathname])
 }
