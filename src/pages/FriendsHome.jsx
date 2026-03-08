@@ -74,6 +74,38 @@ function getThemeByWeatherCode(weatherCode, isDaytime) {
   return { theme: 'day-clear', label: '현재 날씨: 맑음' }
 }
 
+function formatRecentPostTime(createdAt) {
+  const createdAtMs = Number(createdAt)
+  if (!Number.isFinite(createdAtMs)) return ''
+
+  const diffMs = Math.max(0, Date.now() - createdAtMs)
+  const minuteMs = 60 * 1000
+  const hourMs = 60 * minuteMs
+  const dayMs = 24 * hourMs
+  const monthMs = 30 * dayMs
+  const yearMs = 365 * dayMs
+
+  if (diffMs < hourMs) {
+    const minutes = Math.max(1, Math.floor(diffMs / minuteMs))
+    return `${minutes}분 전`
+  }
+  if (diffMs < dayMs) {
+    const hours = Math.floor(diffMs / hourMs)
+    return `${hours}시간 전`
+  }
+  if (diffMs < monthMs) {
+    const days = Math.floor(diffMs / dayMs)
+    return `${days}일 전`
+  }
+  if (diffMs < yearMs) {
+    const months = Math.floor(diffMs / monthMs)
+    return `${months}달 전`
+  }
+
+  const years = Math.floor(diffMs / yearMs)
+  return `${years}년 전`
+}
+
 export default function FriendsHome() {
   const { homeId } = useParams()
   const navigate = useNavigate()
@@ -287,20 +319,21 @@ export default function FriendsHome() {
         </div>
 
         <section className="friends-home-recent-wrap" aria-label="최근 글 목록">
-          <h2 className="hitel-section-community">[ 최근 글 ]</h2>
+          <h2 className="friends-home-recent-heading">최근 올라온 글</h2>
           {recentPosts.length === 0 ? (
             <p className="hitel-hint">아직 게시글이 없습니다. 첫 글을 작성해 보세요.</p>
           ) : (
-            <ol className="friends-home-recent-list">
+            <ul className="friends-home-recent-list">
               {recentPosts.map((post) => (
                 <li key={`${post.boardId}-${post.id}`} className="friends-home-recent-item">
                   <Link to={`/home/${homeId}/board/${post.boardId}/post/${post.id}`} className="friends-home-recent-link">
                     <span className="friends-home-recent-board">[{getBoardDisplayName(homeId, post.boardId)}]</span>
                     <span className="friends-home-recent-title">{post.title}</span>
+                    <span className="friends-home-recent-time">{formatRecentPostTime(post.createdAt)}</span>
                   </Link>
                 </li>
               ))}
-            </ol>
+            </ul>
           )}
         </section>
       </div>
