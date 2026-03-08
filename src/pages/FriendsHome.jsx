@@ -202,6 +202,13 @@ export default function FriendsHome() {
   }, [loadHomeData])
 
   useEffect(() => {
+    const timer = setInterval(() => {
+      loadHomeData()
+    }, 30 * 60 * 1000)
+    return () => clearInterval(timer)
+  }, [loadHomeData])
+
+  useEffect(() => {
     let cancelled = false
 
     const applyFallback = () => {
