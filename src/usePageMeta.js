@@ -22,7 +22,7 @@ export function usePageMeta() {
       const home = homeId ? await getHome(homeId) : null
       if (cancelled) return
 
-      const title = home ? `프렌즈텔 - ${home.title}` : DEFAULT_TITLE
+      const title = home ? `${home.title}의 프렌즈홈에 방문해보세요` : DEFAULT_TITLE
       const description = home
         ? `${home.title} - 친구와 함께 쓰는 프렌즈텔 게시판`
         : DEFAULT_DESC
@@ -35,10 +35,14 @@ export function usePageMeta() {
         ogUrl.setAttribute('content', window.location.origin + pathname)
       }
       if (ogImage && typeof window !== 'undefined') {
-        const imagePath = homeId
-          ? `/api/og-image?homeId=${encodeURIComponent(homeId)}`
-          : '/api/og-image'
-        ogImage.setAttribute('content', window.location.origin + imagePath)
+        if (pathname === '/create') {
+          ogImage.setAttribute('content', '')
+        } else {
+          const imagePath = homeId
+            ? `/api/og-image?homeId=${encodeURIComponent(homeId)}`
+            : '/api/og-image?view=main'
+          ogImage.setAttribute('content', window.location.origin + imagePath)
+        }
       }
     }
 

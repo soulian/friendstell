@@ -3,10 +3,18 @@ import { Link, useLocation } from 'react-router-dom'
 import { getHomes, getHome, updateHome } from '../data/mock'
 import './Header.css'
 
+function isPreviewRuntime() {
+  if (typeof window === 'undefined') return false
+  if (import.meta.env.VITE_PREVIEW_BADGE === 'true') return true
+  const host = window.location.hostname || ''
+  return /\.vercel\.app$/i.test(host) && host.includes('-git-')
+}
+
 export default function Header() {
   const { pathname } = useLocation()
   const match = pathname.match(/^\/home\/([^/]+)/)
   const homeId = match ? match[1] : null
+  const previewBadgeVisible = isPreviewRuntime()
   const [homes, setHomes] = useState([])
   const [currentHome, setCurrentHome] = useState(null)
   const [loadingHomes, setLoadingHomes] = useState(true)
@@ -122,9 +130,16 @@ export default function Header() {
   return (
     <header className="hitel-header">
       <div className="retro-header-inner">
-        <Link to={homeId ? `/home/${homeId}` : '/'} className="retro-logo">
-          🏘 프렌즈텔
-        </Link>
+        <div className="header-brand-wrap">
+          <Link to={homeId ? `/home/${homeId}` : '/'} className="retro-logo">
+            🏘 프렌즈텔
+          </Link>
+          {previewBadgeVisible && (
+            <span className="header-preview-badge" aria-label="프리뷰 환경">
+              프리뷰
+            </span>
+          )}
+        </div>
 
         <div className="header-title-row">
           {currentHome && (
@@ -155,8 +170,10 @@ export default function Header() {
                     type="button"
                     className="header-title-edit-trigger"
                     onClick={handleStartTitleEdit}
+                    title="프렌즈홈 이름 설정"
+                    aria-label="프렌즈홈 이름 설정"
                   >
-                    이름설정
+                    ✎
                   </button>
                 </>
               )}
@@ -171,55 +188,55 @@ export default function Header() {
               </button>
             </>
           )}
+        </div>
 
-          <div className="apt-dropdown" ref={ref} onKeyDown={handleKeyDown}>
-            <button
-              type="button"
-              className="apt-dropdown-trigger"
-              onClick={() => setOpen(!open)}
-              aria-expanded={open}
-              aria-haspopup="listbox"
-              aria-label="프렌즈홈 선택"
-            >
-              <span className="apt-name">
-                {loadingHomes
-                  ? '불러오는 중...'
-                  : currentHome
-                    ? currentHome.title
-                    : (homes.length ? '프렌즈홈 선택' : '메뉴')}
-              </span>
-              <span className="apt-arrow">{open ? '▲' : '▼'}</span>
-            </button>
-            {open && (
-              <ul className="apt-dropdown-menu" ref={listRef} role="listbox">
-                {homes.map((home) => (
-                  <li key={home.id}>
-                    <Link
-                      to={`/home/${home.id}`}
-                      className={home.id === homeId ? 'current' : ''}
-                      onClick={() => setOpen(false)}
-                      role="option"
-                      aria-selected={home.id === homeId}
-                      tabIndex={0}
-                    >
-                      {home.title}
-                    </Link>
-                  </li>
-                ))}
-                <li className="apt-dropdown-create">
+        <div className="apt-dropdown" ref={ref} onKeyDown={handleKeyDown}>
+          <button
+            type="button"
+            className="apt-dropdown-trigger"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            aria-label="프렌즈홈 선택"
+          >
+            <span className="apt-name">
+              {loadingHomes
+                ? '불러오는 중...'
+                : currentHome
+                  ? currentHome.title
+                  : (homes.length ? '프렌즈홈 선택' : '메뉴')}
+            </span>
+            <span className="apt-arrow">{open ? '▲' : '▼'}</span>
+          </button>
+          {open && (
+            <ul className="apt-dropdown-menu" ref={listRef} role="listbox">
+              {homes.map((home) => (
+                <li key={home.id}>
                   <Link
-                    to="/create"
-                    className="create-link"
+                    to={`/home/${home.id}`}
+                    className={home.id === homeId ? 'current' : ''}
                     onClick={() => setOpen(false)}
                     role="option"
+                    aria-selected={home.id === homeId}
                     tabIndex={0}
                   >
-                    + 새 프렌즈홈 만들기
+                    {home.title}
                   </Link>
                 </li>
-              </ul>
-            )}
-          </div>
+              ))}
+              <li className="apt-dropdown-create">
+                <Link
+                  to="/create"
+                  className="create-link"
+                  onClick={() => setOpen(false)}
+                  role="option"
+                  tabIndex={0}
+                >
+                  + 새 프렌즈홈 만들기
+                </Link>
+              </li>
+            </ul>
+          )}
         </div>
       </div>
     </header>

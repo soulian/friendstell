@@ -104,7 +104,7 @@ export function buildMetaByHome(home) {
     return { ...DEFAULT_META }
   }
   return {
-    title: `프렌즈텔 - ${home.title}`,
+    title: `${home.title}의 프렌즈홈에 방문해보세요`,
     description: `${home.title} - 친구와 함께 쓰는 프렌즈텔 게시판`,
   }
 }

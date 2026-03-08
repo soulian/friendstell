@@ -36,13 +36,19 @@ function buildAvatarSvg(totalAvatars) {
     .join('\n')
 }
 
-function buildSvg({ title, subtitle, uniqueAuthorCount }) {
+function buildSvg({ title, subtitle, uniqueAuthorCount, isMainHome }) {
   const mood = getMood(uniqueAuthorCount)
   const moodColor = getMoodColor(mood)
   const totalAvatars = Math.min(uniqueAuthorCount, 4) + 1
   const safeTitle = escapeXml(title)
   const safeSubtitle = escapeXml(subtitle)
   const avatarSvg = buildAvatarSvg(totalAvatars)
+  const mainBadge = isMainHome
+    ? `<rect x="70" y="350" width="290" height="54" rx="14" fill="#0f172acc" />
+  <text x="98" y="386" font-size="28" font-family="'Malgun Gothic', 'Noto Sans KR', sans-serif" fill="#facc15">
+    메인홈 공유 이미지
+  </text>`
+    : ''
 
   return `<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${safeTitle}">
   <defs>
@@ -81,6 +87,7 @@ function buildSvg({ title, subtitle, uniqueAuthorCount }) {
   <text x="142" y="313" font-size="28" font-family="'Malgun Gothic', 'Noto Sans KR', sans-serif" fill="#f8fafc">
     미니룸 분위기: ${mood}
   </text>
+  ${mainBadge}
   ${avatarSvg}
 </svg>`
 }
@@ -93,18 +100,24 @@ export default async function handler(req, res) {
   const origin = getRequestOrigin(req)
   const pathname = req?.query?.path || req?.url || ''
   const homeId = getHomeId(req, pathname)
+  const view = typeof req?.query?.view === 'string' ? req.query.view : ''
   const snapshot = await fetchSharedSnapshot(origin)
   const home = getHomeById(snapshot, homeId)
   const uniqueAuthorCount = getUniqueAuthorCount(snapshot, homeId)
   const baseMeta = buildMetaByHome(home)
+  const isMainHome = !home && view === 'main'
+  const ogTitle = isMainHome ? '프렌즈텔 메인홈' : baseMeta.title
   const subtitle = home
     ? `오늘 방문 친구 ${uniqueAuthorCount}명과 함께하는 캠핑장 미니룸`
-    : '친구와 함께 쓰는 게시판을 만들고 링크를 공유해 보세요.'
+    : isMainHome
+      ? '친구와 함께 쓰는 게시판을 만들고 링크를 공유해 보세요.'
+      : '프렌즈텔 공유 이미지'
 
   const svg = buildSvg({
-    title: baseMeta.title,
+    title: ogTitle,
     subtitle,
-    uniqueAuthorCount,
+    uniqueAuthorCount: home ? uniqueAuthorCount : 0,
+    isMainHome,
   })
 
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
