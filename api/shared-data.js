@@ -107,15 +107,22 @@ function parseBody(req) {
   return req.body
 }
 
-function homeId() {
+function nextTimestamp(input) {
+  return Number.isFinite(input) ? input : Date.now()
+}
+
+function homeId(providedId) {
+  if (typeof providedId === 'string' && providedId.trim()) return providedId.trim()
   return `h_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
-function postId() {
+function postId(providedId) {
+  if (typeof providedId === 'string' && providedId.trim()) return providedId.trim()
   return `p_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
-function commentId() {
+function commentId(providedId) {
+  if (typeof providedId === 'string' && providedId.trim()) return providedId.trim()
   return `c_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
@@ -124,10 +131,15 @@ function applyMutation(db, op, payload = {}) {
 
   if (op === 'createHome') {
     const title = normalizeHomeTitle(payload.title) || '이름 없는 프렌즈홈'
+    const id = homeId(payload.id)
+    const existing = next.homes.find((item) => item.id === id)
+    if (existing) {
+      return { db: next, result: existing }
+    }
     const home = {
-      id: homeId(),
+      id,
       title,
-      createdAt: Date.now(),
+      createdAt: nextTimestamp(payload.createdAt),
     }
     next.homes = [home, ...next.homes]
     return { db: next, result: home }
@@ -147,13 +159,19 @@ function applyMutation(db, op, payload = {}) {
   if (op === 'addPost') {
     const key = `${payload.homeId}:${payload.boardId}`
     const list = Array.isArray(next.posts[key]) ? [...next.posts[key]] : []
+    const id = postId(payload.id)
+    const existing = list.find((item) => item.id === id)
+    if (existing) {
+      next.posts[key] = list
+      return { db: next, result: existing }
+    }
     const post = {
-      id: postId(),
+      id,
       title: payload.title || '',
       body: payload.body || '',
       author: payload.author || '익명',
-      createdAt: Date.now(),
-      views: 0,
+      createdAt: nextTimestamp(payload.createdAt),
+      views: Number.isFinite(payload.views) ? payload.views : 0,
     }
     list.push(post)
     next.posts[key] = list
@@ -173,11 +191,17 @@ function applyMutation(db, op, payload = {}) {
   if (op === 'addComment') {
     const key = `${payload.homeId}:${payload.boardId}:${payload.postId}`
     const list = Array.isArray(next.comments[key]) ? [...next.comments[key]] : []
+    const id = commentId(payload.id)
+    const existing = list.find((item) => item.id === id)
+    if (existing) {
+      next.comments[key] = list
+      return { db: next, result: existing }
+    }
     const comment = {
-      id: commentId(),
+      id,
       body: payload.body || '',
       author: payload.author || '익명',
-      createdAt: Date.now(),
+      createdAt: nextTimestamp(payload.createdAt),
     }
     list.push(comment)
     next.comments[key] = list

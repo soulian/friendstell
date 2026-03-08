@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { getHomes, getHome, updateHome } from '../data/mock'
+import { getHomes, getHome, getSyncStatus, updateHome } from '../data/mock'
 import './Header.css'
 
 function isPreviewRuntime() {
@@ -18,6 +18,7 @@ export default function Header() {
   const [homes, setHomes] = useState([])
   const [currentHome, setCurrentHome] = useState(null)
   const [loadingHomes, setLoadingHomes] = useState(true)
+  const [syncStatus, setSyncStatus] = useState(() => getSyncStatus())
   const [open, setOpen] = useState(false)
   const [shareDone, setShareDone] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
@@ -34,6 +35,7 @@ export default function Header() {
       ])
       setHomes(nextHomes)
       setCurrentHome(nextHome)
+      setSyncStatus(getSyncStatus())
     } finally {
       setLoadingHomes(false)
     }
@@ -63,6 +65,14 @@ export default function Header() {
     window.addEventListener('friends-data-updated', handleDataUpdated)
     return () => window.removeEventListener('friends-data-updated', handleDataUpdated)
   }, [loadHeaderData])
+
+  useEffect(() => {
+    const handleSyncStatusUpdated = () => {
+      setSyncStatus(getSyncStatus())
+    }
+    window.addEventListener('friends-sync-status-updated', handleSyncStatusUpdated)
+    return () => window.removeEventListener('friends-sync-status-updated', handleSyncStatusUpdated)
+  }, [])
 
   const handleShare = (e) => {
     e.preventDefault()
@@ -238,6 +248,13 @@ export default function Header() {
             </ul>
           )}
         </div>
+      </div>
+      <div className={`header-sync-banner is-${syncStatus.mode}`}>
+        {syncStatus.mode === 'shared'
+          ? '공용DB 연결됨: 친구와 같은 프렌즈홈/게시판 데이터를 보고 있어요.'
+          : syncStatus.mode === 'local-fallback'
+            ? `로컬 모드: 현재 기기 데이터만 보입니다. 친구에게 안 보일 수 있어요.${syncStatus.pendingCount > 0 ? ` (원격 동기화 대기 ${syncStatus.pendingCount}건)` : ''}`
+            : '공용DB 연결 상태 확인 중...'}
       </div>
     </header>
   )

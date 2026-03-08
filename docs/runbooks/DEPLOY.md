@@ -64,6 +64,8 @@ npm run preview
 - 기대 결과:
   - 상세 경로 직접 진입/새로고침 시에도 React Router가 정상 렌더링한다.
   - 링크 프리뷰 크롤러가 상세 경로 접근 시 `og:image`에 홈 미니룸 이미지(`/api/og-image?homeId=...`)가 노출된다.
+  - `og:image` 응답 헤더 `Content-Type`이 `image/png`인지 확인한다.
+  - Header 하단 동기화 배너가 `공용DB 연결됨`으로 표시되는지 확인한다. `로컬 모드` 문구가 뜨면 친구 기기와 데이터가 공유되지 않는다.
 
 ## 롤백
 
@@ -72,11 +74,13 @@ npm run preview
 3. `main`에 푸시하면 해당 커밋 기준으로 재배포됨
 4. **주의**: `src/data/mock.js` 스키마·키 변경 시 기존 사용자 localStorage와 불일치할 수 있음. 필요 시 마이그레이션 또는 안내 문구 고려.
    - 현재 버전은 기본 시드 홈(`home_ai_it_meetup`)과 시드 게시글/댓글을 자동 보정한다. 롤백 시 시드 데이터 노출 방식(자동 주입 여부)을 함께 확인한다.
+   - outbox 재동기화 키(`friends_tell_pending_mutations_v1`)가 남아 있을 수 있으므로, 구버전으로 롤백 시 재시도 동작 차이가 없는지 확인한다.
 5. Vercel 라우팅 이슈가 생기면 `vercel.json`의 rewrite 변경 커밋을 우선 롤백한다.
 6. 공용 DB 장애 시 임시 완화: Vercel 환경변수 `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`을 제거/비활성화하면 클라이언트가 localStorage 폴백 모드로 동작한다.
 7. 공용 DB 키(`friends_tell:shared_db:v1`) 스키마를 변경할 때는 `v2` 키를 병행 운영하고 이전 절차를 문서화한다.
 8. 공용 DB 유실 의심 시 `friends_tell:shared_db:v1:backup` 값을 먼저 확인하고, 필요하면 해당 값을 `friends_tell:shared_db:v1`로 복원한다.
 9. OG 동적 주입 장애(홈 경로 진입 실패/미리보기 깨짐) 시 `vercel.json`의 `/home/:homeId* -> /api/og-meta` rewrite를 롤백해 기존 `/index.html` 직결 경로로 즉시 복구한다.
+10. 공유 데이터가 일부 사용자에게만 보이는 경우 Header 배너에서 `로컬 모드` 여부와 `원격 동기화 대기 N건` 문구를 먼저 확인한다. 일시 장애 후 자동 재동기화(outbox)가 실패하면 Upstash 연결 상태를 복구한 뒤 홈 화면 재접속으로 재시도한다.
 
 ## 환경·시크릿
 
