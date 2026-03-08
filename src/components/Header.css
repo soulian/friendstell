@@ -52,6 +52,17 @@
   color: #ffe08a;
 }
 
+.header-sync-banner.is-shared-required {
+  border-color: #ef4444;
+  color: #ffd1d1;
+}
+
+.header-title-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #ff9a9a;
+}
+
 .header-title-row {
   display: flex;
   align-items: center;

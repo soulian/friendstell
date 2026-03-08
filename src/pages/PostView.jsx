@@ -6,7 +6,9 @@ import {
   addComment,
   increaseViews,
   getHome,
+  getSharedWriteErrorMessage,
   getStoredNickname,
+  isSharedWriteError,
   setStoredNickname,
 } from '../data/mock'
 import './PostView.css'
@@ -18,6 +20,7 @@ export default function PostView() {
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [commentNickname, setCommentNickname] = useState('')
+  const [commentError, setCommentError] = useState('')
   const [loading, setLoading] = useState(true)
   const [submittingComment, setSubmittingComment] = useState(false)
 
@@ -70,6 +73,7 @@ export default function PostView() {
   const handleSubmitComment = async (e) => {
     e.preventDefault()
     if (!commentText.trim()) return
+    setCommentError('')
     const author = commentNickname.trim() || '익명'
     setSubmittingComment(true)
     try {
@@ -78,6 +82,12 @@ export default function PostView() {
       const nextComments = await getComments(homeId, boardId, postId)
       setComments(nextComments)
       setCommentText('')
+    } catch (err) {
+      if (isSharedWriteError(err)) {
+        setCommentError(getSharedWriteErrorMessage())
+      } else {
+        setCommentError('댓글 작성에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+      }
     } finally {
       setSubmittingComment(false)
     }
@@ -125,7 +135,10 @@ export default function PostView() {
               className="hitel-input"
               placeholder="닉네임 (미입력 시 익명)"
               value={commentNickname}
-              onChange={(e) => setCommentNickname(e.target.value)}
+              onChange={(e) => {
+                setCommentNickname(e.target.value)
+                setCommentError('')
+              }}
               maxLength={20}
               disabled={submittingComment}
             />
@@ -134,10 +147,14 @@ export default function PostView() {
             className="hitel-textarea"
             placeholder="댓글을 입력하세요..."
             value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
+            onChange={(e) => {
+              setCommentText(e.target.value)
+              setCommentError('')
+            }}
             rows={3}
             disabled={submittingComment}
           />
+          {commentError && <p className="hitel-error">{commentError}</p>}
           <button type="submit" className="hitel-btn" disabled={submittingComment}>
             {submittingComment ? '[ 작성중... ]' : '[ 댓글 쓰기 ]'}
           </button>

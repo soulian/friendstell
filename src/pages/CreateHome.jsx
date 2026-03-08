@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { createHome, getHomes } from '../data/mock'
+import {
+  createHome,
+  getHomes,
+  getSharedWriteErrorMessage,
+  isSharedWriteError,
+} from '../data/mock'
 import './CreateHome.css'
 
 export default function CreateHome() {
@@ -47,6 +52,12 @@ export default function CreateHome() {
     try {
       const home = await createHome({ title: t })
       navigate(`/home/${home.id}`, { replace: true })
+    } catch (err) {
+      if (isSharedWriteError(err)) {
+        setError(getSharedWriteErrorMessage())
+      } else {
+        setError('프렌즈홈 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+      }
     } finally {
       setSubmitting(false)
     }

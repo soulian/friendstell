@@ -5,6 +5,7 @@ const SHARED_API_ENDPOINT = '/api/shared-data'
 const SHARED_SYNC_TTL_MS = 5000
 const REMOTE_RETRY_INTERVAL_MS = 30000
 const PENDING_MUTATIONS_KEY = 'friends_tell_pending_mutations_v1'
+const SHARED_WRITE_ERROR_MESSAGE = '공용 DB 연결 문제로 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.'
 
 const AI_IT_HOME_ID = 'home_ai_it_meetup'
 const AI_IT_HOME_TITLE = 'AI IT 모임 프렌즈홈'
@@ -123,6 +124,27 @@ function now() {
   return Date.now()
 }
 
+function isPreviewRuntime() {
+  if (typeof window === 'undefined') return false
+  if (import.meta.env.VITE_PREVIEW_BADGE === 'true') return true
+  const host = window.location.hostname || ''
+  return /\.vercel\.app$/i.test(host) && host.includes('-git-')
+}
+
+function allowsLocalFallback() {
+  if (typeof window === 'undefined') return true
+  if (import.meta.env.DEV) return true
+  if (isPreviewRuntime()) return true
+  return false
+}
+
+function createSharedRequiredError(reason = 'shared-db-unavailable') {
+  const error = new Error('shared-required')
+  error.code = 'shared-required'
+  error.reason = reason
+  return error
+}
+
 function shouldAttemptRemote() {
   if (typeof window === 'undefined' || typeof fetch !== 'function') return false
   if (remoteStatus !== 'disabled') return true
@@ -187,6 +209,7 @@ function saveDataToLocal(data) {
 }
 
 function loadPendingMutations() {
+  if (!allowsLocalFallback()) return []
   try {
     const raw = localStorage.getItem(PENDING_MUTATIONS_KEY)
     if (!raw) return []
@@ -207,6 +230,7 @@ function mutationKey(op, payload = {}) {
 }
 
 function savePendingMutations(list) {
+  if (!allowsLocalFallback()) return
   try {
     localStorage.setItem(PENDING_MUTATIONS_KEY, JSON.stringify(list))
   } catch (_) {}
@@ -239,6 +263,13 @@ function clearPendingMutationKeys(keys = []) {
 }
 
 function loadLocalSnapshot() {
+  if (!allowsLocalFallback()) {
+    return normalizeSnapshot({
+      homes: [],
+      posts: {},
+      comments: {},
+    })
+  }
   const homes = loadHomesFromLocal()
   const data = loadDataFromLocal()
   return normalizeSnapshot({
@@ -251,8 +282,10 @@ function loadLocalSnapshot() {
 function persistSnapshot(snapshot) {
   const normalized = normalizeSnapshot(snapshot)
   cache = normalized
-  saveHomesToLocal(normalized.homes)
-  saveDataToLocal({ posts: normalized.posts, comments: normalized.comments })
+  if (allowsLocalFallback()) {
+    saveHomesToLocal(normalized.homes)
+    saveDataToLocal({ posts: normalized.posts, comments: normalized.comments })
+  }
   emitDataChanged()
 }
 
@@ -456,8 +489,11 @@ async function flushPendingMutations() {
 }
 
 async function runRemoteMutation(op, payload = {}, options = {}) {
-  const { enqueueOnFailure = false } = options
+  const { enqueueOnFailure = false, requireSharedWrite = false } = options
   if (!shouldAttemptRemote()) {
+    if (requireSharedWrite && !allowsLocalFallback()) {
+      throw createSharedRequiredError('shared-api-unreachable')
+    }
     if (enqueueOnFailure) enqueuePendingMutation(op, payload)
     return null
   }
@@ -466,6 +502,9 @@ async function runRemoteMutation(op, payload = {}, options = {}) {
     if (!response.ok) {
       if (enqueueOnFailure) enqueuePendingMutation(op, payload)
       setRemoteConnection('disabled', response.errorCode)
+      if (requireSharedWrite && !allowsLocalFallback()) {
+        throw createSharedRequiredError(response.errorCode)
+      }
       return null
     }
 
@@ -483,6 +522,9 @@ async function runRemoteMutation(op, payload = {}, options = {}) {
     const nextError = error?.message || 'shared-api-post-failed'
     if (enqueueOnFailure) enqueuePendingMutation(op, payload)
     setRemoteConnection('disabled', nextError)
+    if (requireSharedWrite && !allowsLocalFallback()) {
+      throw createSharedRequiredError(nextError)
+    }
     return null
   }
 }
@@ -540,7 +582,7 @@ export function getSyncStatus() {
   const mode = remoteStatus === 'enabled'
     ? 'shared'
     : remoteStatus === 'disabled'
-      ? 'local-fallback'
+      ? (allowsLocalFallback() ? 'local-fallback' : 'shared-required')
       : 'checking'
   return {
     mode,
@@ -569,7 +611,7 @@ export async function createHome({ title }) {
     title: nextTitle,
     createdAt: now(),
   }
-  const remote = await runRemoteMutation('createHome', home, { enqueueOnFailure: true })
+  const remote = await runRemoteMutation('createHome', home, { enqueueOnFailure: true, requireSharedWrite: true })
   if (remote) return remote
 
   const homes = [home, ...cache.homes]
@@ -580,7 +622,7 @@ export async function createHome({ title }) {
 /** 프렌즈홈 제목 등 수정 */
 export async function updateHome(homeId, { title }) {
   const nextTitle = title === undefined ? undefined : normalizeHomeTitle(title)
-  const remote = await runRemoteMutation('updateHome', { homeId, title: nextTitle }, { enqueueOnFailure: true })
+  const remote = await runRemoteMutation('updateHome', { homeId, title: nextTitle }, { enqueueOnFailure: true, requireSharedWrite: true })
   if (remote) return remote
 
   const homes = [...cache.homes]
@@ -619,7 +661,7 @@ export async function addPost(homeId, boardId, { title, body, author }) {
     createdAt: now(),
     views: 0,
   }
-  const remote = await runRemoteMutation('addPost', post, { enqueueOnFailure: true })
+  const remote = await runRemoteMutation('addPost', post, { enqueueOnFailure: true, requireSharedWrite: true })
   if (remote) return remote
 
   const key = `${homeId}:${boardId}`
@@ -676,7 +718,7 @@ export async function addComment(homeId, boardId, postId, { body, author }) {
     author: author || '익명',
     createdAt: now(),
   }
-  const remote = await runRemoteMutation('addComment', comment, { enqueueOnFailure: true })
+  const remote = await runRemoteMutation('addComment', comment, { enqueueOnFailure: true, requireSharedWrite: true })
   if (remote) return remote
 
   const key = `${homeId}:${boardId}:${postId}`
@@ -738,4 +780,12 @@ export async function getHomeUniqueAuthors(homeId, options = {}) {
   })
 
   return Array.from(authors)
+}
+
+export function isSharedWriteError(error) {
+  return error?.code === 'shared-required'
+}
+
+export function getSharedWriteErrorMessage() {
+  return SHARED_WRITE_ERROR_MESSAGE
 }

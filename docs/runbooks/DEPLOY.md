@@ -65,7 +65,9 @@ npm run preview
   - 상세 경로 직접 진입/새로고침 시에도 React Router가 정상 렌더링한다.
   - 링크 프리뷰 크롤러가 상세 경로 접근 시 `og:image`에 홈 미니룸 이미지(`/api/og-image?homeId=...`)가 노출된다.
   - `og:image` 응답 헤더 `Content-Type`이 `image/png`인지 확인한다.
-  - Header 하단 동기화 배너가 `공용DB 연결됨`으로 표시되는지 확인한다. `로컬 모드` 문구가 뜨면 친구 기기와 데이터가 공유되지 않는다.
+- Header 하단 동기화 배너가 `공용DB 연결됨`으로 표시되는지 확인한다.
+- 운영(프로덕션)에서 `공용DB 연결 오류` 문구가 뜨면 로컬 저장이 차단되며 글/댓글/홈 생성이 실패한다. 이 상태에서는 Upstash 환경변수/연결을 우선 복구한다.
+- `로컬 모드` 배너는 개발/프리뷰 런타임에서만 허용된다.
 
 ## 롤백
 
@@ -88,5 +90,6 @@ npm run preview
   - `BASE_PATH` (빌드 경로)
   - `UPSTASH_REDIS_REST_URL` (공용 DB URL)
   - `UPSTASH_REDIS_REST_TOKEN` (공용 DB 토큰)
-- 공용 DB 미설정 시에도 앱은 localStorage 폴백으로 동작한다.
+- 개발/프리뷰 런타임에서는 공용 DB 미설정 시 localStorage 폴백으로 동작한다.
+- 운영(프로덕션) 런타임에서는 공용 DB 미설정/장애 시 localStorage 폴백을 허용하지 않고, 쓰기 작업(홈 생성·글/댓글 작성·홈 이름 변경)을 차단한다.
 - 운영자 비밀번호는 `src/data/mock.js` 내 상수(`OPERATOR_PASSWORD`). 변경 시 해당 파일 수정 후 배포.

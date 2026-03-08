@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { getHomes, getHome, getSyncStatus, updateHome } from '../data/mock'
+import {
+  getHomes,
+  getHome,
+  getSyncStatus,
+  updateHome,
+  getSharedWriteErrorMessage,
+  isSharedWriteError,
+} from '../data/mock'
 import './Header.css'
 
 function isPreviewRuntime() {
@@ -23,6 +30,7 @@ export default function Header() {
   const [shareDone, setShareDone] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
   const [editTitleValue, setEditTitleValue] = useState('')
+  const [titleEditError, setTitleEditError] = useState('')
   const [savingTitle, setSavingTitle] = useState(false)
   const ref = useRef(null)
   const listRef = useRef(null)
@@ -52,6 +60,7 @@ export default function Header() {
   useEffect(() => {
     setEditingTitle(false)
     setEditTitleValue('')
+    setTitleEditError('')
   }, [homeId])
 
   useEffect(() => {
@@ -114,11 +123,13 @@ export default function Header() {
     if (!currentHome) return
     setEditingTitle(true)
     setEditTitleValue(currentHome.title)
+    setTitleEditError('')
   }
 
   const handleCancelTitleEdit = () => {
     setEditingTitle(false)
     setEditTitleValue('')
+    setTitleEditError('')
   }
 
   const handleSaveTitle = async (e) => {
@@ -132,6 +143,13 @@ export default function Header() {
       await loadHeaderData()
       setEditingTitle(false)
       setEditTitleValue('')
+      setTitleEditError('')
+    } catch (error) {
+      if (isSharedWriteError(error)) {
+        setTitleEditError(getSharedWriteErrorMessage())
+      } else {
+        setTitleEditError('이름 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+      }
     } finally {
       setSavingTitle(false)
     }
@@ -160,7 +178,10 @@ export default function Header() {
                     type="text"
                     className="hitel-input header-title-edit-input"
                     value={editTitleValue}
-                    onChange={(e) => setEditTitleValue(e.target.value)}
+                    onChange={(e) => {
+                      setEditTitleValue(e.target.value)
+                      setTitleEditError('')
+                    }}
                     maxLength={50}
                     placeholder="프렌즈홈 이름"
                     autoFocus
@@ -249,9 +270,12 @@ export default function Header() {
           )}
         </div>
       </div>
+      {titleEditError && <p className="header-title-error">{titleEditError}</p>}
       <div className={`header-sync-banner is-${syncStatus.mode}`}>
         {syncStatus.mode === 'shared'
           ? '공용DB 연결됨: 친구와 같은 프렌즈홈/게시판 데이터를 보고 있어요.'
+          : syncStatus.mode === 'shared-required'
+            ? '공용DB 연결 오류: 운영 환경에서는 로컬 저장을 허용하지 않습니다. 연결 복구 후 다시 시도해 주세요.'
           : syncStatus.mode === 'local-fallback'
             ? `로컬 모드: 현재 기기 데이터만 보입니다. 친구에게 안 보일 수 있어요.${syncStatus.pendingCount > 0 ? ` (원격 동기화 대기 ${syncStatus.pendingCount}건)` : ''}`
             : '공용DB 연결 상태 확인 중...'}
