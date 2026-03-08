@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { createHome, getHomes } from '../data/mock'
 import './CreateHome.css'
@@ -7,8 +7,35 @@ export default function CreateHome() {
   const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [error, setError] = useState('')
+  const [homes, setHomes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    let mounted = true
+
+    const loadHomes = async () => {
+      try {
+        const list = await getHomes()
+        if (mounted) setHomes(list)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    const handleDataUpdated = () => {
+      loadHomes()
+    }
+
+    loadHomes()
+    window.addEventListener('friends-data-updated', handleDataUpdated)
+    return () => {
+      mounted = false
+      window.removeEventListener('friends-data-updated', handleDataUpdated)
+    }
+  }, [])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     const t = title.trim()
@@ -16,11 +43,15 @@ export default function CreateHome() {
       setError('프렌즈홈 제목을 입력하세요.')
       return
     }
-    const home = createHome({ title: t })
-    navigate(`/home/${home.id}`, { replace: true })
+    setSubmitting(true)
+    try {
+      const home = await createHome({ title: t })
+      navigate(`/home/${home.id}`, { replace: true })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const homes = getHomes()
   const firstHomeId = homes.length > 0 ? homes[0].id : null
 
   return (
@@ -39,16 +70,21 @@ export default function CreateHome() {
             maxLength={50}
             autoFocus
             aria-label="프렌즈홈 제목"
+            disabled={submitting}
           />
         </label>
         {error && <p className="hitel-error">{error}</p>}
+        {loading && <p className="hitel-hint">공용 홈 목록을 불러오는 중...</p>}
         <div className="hitel-form-actions">
-          <button type="submit" className="hitel-btn">[ 만들기 ]</button>
+          <button type="submit" className="hitel-btn" disabled={submitting}>
+            {submitting ? '[ 생성중... ]' : '[ 만들기 ]'}
+          </button>
           {firstHomeId && (
             <button
               type="button"
               className="hitel-btn hitel-btn-secondary"
               onClick={() => navigate(`/home/${firstHomeId}`)}
+              disabled={submitting}
             >
               [ 취소 ]
             </button>

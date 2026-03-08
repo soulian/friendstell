@@ -1,14 +1,48 @@
+import { useEffect, useState, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   getPosts,
-  getBoardDisplayName,
+  getHome,
 } from '../data/mock'
 import './BoardList.css'
 
 export default function BoardList() {
   const { homeId, boardId } = useParams()
-  const boardName = getBoardDisplayName(homeId, boardId)
-  const posts = getPosts(homeId, boardId)
+  const [posts, setPosts] = useState([])
+  const [boardName, setBoardName] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  const loadBoard = useCallback(async () => {
+    setLoading(true)
+    const [nextPosts, home] = await Promise.all([
+      getPosts(homeId, boardId),
+      getHome(homeId),
+    ])
+    const nextBoardName = boardId === 'news'
+      ? (home ? `${home.title} 소식` : '소식')
+      : (boardId === 'notice'
+        ? '공지사항'
+        : boardId === 'free'
+          ? '자유게시판'
+          : boardId === 'temp'
+            ? '임시 게시판'
+            : boardId)
+    setPosts(nextPosts)
+    setBoardName(nextBoardName)
+    setLoading(false)
+  }, [homeId, boardId])
+
+  useEffect(() => {
+    loadBoard()
+  }, [loadBoard])
+
+  useEffect(() => {
+    const handleDataUpdated = () => {
+      loadBoard()
+    }
+    window.addEventListener('friends-data-updated', handleDataUpdated)
+    return () => window.removeEventListener('friends-data-updated', handleDataUpdated)
+  }, [loadBoard])
 
   return (
     <div className="board-list hitel-card">
@@ -16,6 +50,7 @@ export default function BoardList() {
         <Link to={`/home/${homeId}`}>◀ 메인</Link>
         <span># {boardName}</span>
       </nav>
+      {loading && <p className="hitel-hint">게시판 목록을 불러오는 중...</p>}
       <h2 className="hitel-board-title">게시판 총 {posts.length}건</h2>
       <table className="hitel-table">
         <thead>

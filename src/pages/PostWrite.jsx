@@ -19,6 +19,7 @@ export default function PostWrite() {
   const [operatorPw, setOperatorPw] = useState('')
   const [operatorError, setOperatorError] = useState('')
   const [passwordChecked, setPasswordChecked] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!isNotice) {
@@ -26,7 +27,7 @@ export default function PostWrite() {
     }
   }, [isNotice])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (isNotice && !passwordChecked) {
@@ -44,23 +45,28 @@ export default function PostWrite() {
     }
 
     if (!title.trim()) return
+    setSubmitting(true)
 
-    if (isNotice) {
-      const post = addPost(homeId, boardId, {
-        title: title.trim(),
-        body: body.trim(),
-        author: '운영자',
-      })
-      navigate(`/home/${homeId}/board/${boardId}/post/${post.id}`)
-    } else {
-      const author = nickname.trim() || '익명'
-      setStoredNickname(author)
-      const post = addPost(homeId, boardId, {
-        title: title.trim(),
-        body: body.trim(),
-        author,
-      })
-      navigate(`/home/${homeId}/board/${boardId}/post/${post.id}`)
+    try {
+      if (isNotice) {
+        const post = await addPost(homeId, boardId, {
+          title: title.trim(),
+          body: body.trim(),
+          author: '운영자',
+        })
+        navigate(`/home/${homeId}/board/${boardId}/post/${post.id}`)
+      } else {
+        const author = nickname.trim() || '익명'
+        setStoredNickname(author)
+        const post = await addPost(homeId, boardId, {
+          title: title.trim(),
+          body: body.trim(),
+          author,
+        })
+        navigate(`/home/${homeId}/board/${boardId}/post/${post.id}`)
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -90,6 +96,7 @@ export default function PostWrite() {
                 setOperatorError('')
               }}
               autoComplete="current-password"
+              disabled={submitting}
             />
             {operatorError && <p className="hitel-error">{operatorError}</p>}
           </label>
@@ -108,6 +115,7 @@ export default function PostWrite() {
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   maxLength={20}
+                  disabled={submitting}
                 />
               </label>
             )}
@@ -120,6 +128,7 @@ export default function PostWrite() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={200}
+                disabled={submitting}
               />
             </label>
             <label>
@@ -130,13 +139,14 @@ export default function PostWrite() {
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={12}
+                disabled={submitting}
               />
             </label>
           </>
         )}
         <div className="hitel-form-actions">
-          <button type="submit" className="hitel-btn">
-            {needPasswordStep ? '[ 비밀번호 확인 ]' : '[ 등록 ]'}
+          <button type="submit" className="hitel-btn" disabled={submitting}>
+            {submitting ? '[ 등록중... ]' : (needPasswordStep ? '[ 비밀번호 확인 ]' : '[ 등록 ]')}
           </button>
         </div>
       </form>

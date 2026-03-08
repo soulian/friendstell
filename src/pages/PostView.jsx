@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   getPost,
   getComments,
   addComment,
   increaseViews,
-  getBoardDisplayName,
+  getHome,
   getStoredNickname,
   setStoredNickname,
 } from '../data/mock'
@@ -13,36 +13,82 @@ import './PostView.css'
 
 export default function PostView() {
   const { homeId, boardId, postId } = useParams()
-  const boardName = getBoardDisplayName(homeId, boardId)
+  const [boardName, setBoardName] = useState('')
   const [post, setPost] = useState(null)
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [commentNickname, setCommentNickname] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [submittingComment, setSubmittingComment] = useState(false)
 
   useEffect(() => {
     setCommentNickname(getStoredNickname())
   }, [])
 
-  useEffect(() => {
-    const p = getPost(homeId, boardId, postId)
-    setPost(p)
-    if (p) {
-      increaseViews(homeId, boardId, postId)
+  const resolveBoardName = useCallback(async () => {
+    const home = await getHome(homeId)
+    if (boardId === 'news') return home ? `${home.title} 소식` : '소식'
+    if (boardId === 'notice') return '공지사항'
+    if (boardId === 'free') return '자유게시판'
+    if (boardId === 'temp') return '임시 게시판'
+    return boardId
+  }, [homeId, boardId])
+
+  const loadPost = useCallback(async (options = {}) => {
+    const { withViewIncrease = false } = options
+    setLoading(true)
+
+    const p = await getPost(homeId, boardId, postId)
+    if (p && withViewIncrease) {
+      await increaseViews(homeId, boardId, postId)
     }
-  }, [homeId, boardId, postId])
+
+    const [nextPost, nextComments, nextBoardName] = await Promise.all([
+      getPost(homeId, boardId, postId),
+      getComments(homeId, boardId, postId),
+      resolveBoardName(),
+    ])
+
+    setPost(nextPost)
+    setComments(nextComments)
+    setBoardName(nextBoardName)
+    setLoading(false)
+  }, [homeId, boardId, postId, resolveBoardName])
 
   useEffect(() => {
-    setComments(getComments(homeId, boardId, postId))
-  }, [homeId, boardId, postId])
+    loadPost({ withViewIncrease: true })
+  }, [loadPost])
 
-  const handleSubmitComment = (e) => {
+  useEffect(() => {
+    const handleDataUpdated = () => {
+      loadPost()
+    }
+    window.addEventListener('friends-data-updated', handleDataUpdated)
+    return () => window.removeEventListener('friends-data-updated', handleDataUpdated)
+  }, [loadPost])
+
+  const handleSubmitComment = async (e) => {
     e.preventDefault()
     if (!commentText.trim()) return
     const author = commentNickname.trim() || '익명'
-    setStoredNickname(author)
-    addComment(homeId, boardId, postId, { body: commentText.trim(), author })
-    setComments(getComments(homeId, boardId, postId))
-    setCommentText('')
+    setSubmittingComment(true)
+    try {
+      setStoredNickname(author)
+      await addComment(homeId, boardId, postId, { body: commentText.trim(), author })
+      const nextComments = await getComments(homeId, boardId, postId)
+      setComments(nextComments)
+      setCommentText('')
+    } finally {
+      setSubmittingComment(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="hitel-card hitel-post-missing">
+        <p>게시글을 불러오는 중...</p>
+      </div>
+    )
   }
 
   if (!post) {
@@ -81,6 +127,7 @@ export default function PostView() {
               value={commentNickname}
               onChange={(e) => setCommentNickname(e.target.value)}
               maxLength={20}
+              disabled={submittingComment}
             />
           </label>
           <textarea
@@ -89,8 +136,11 @@ export default function PostView() {
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
             rows={3}
+            disabled={submittingComment}
           />
-          <button type="submit" className="hitel-btn">[ 댓글 쓰기 ]</button>
+          <button type="submit" className="hitel-btn" disabled={submittingComment}>
+            {submittingComment ? '[ 작성중... ]' : '[ 댓글 쓰기 ]'}
+          </button>
         </form>
         <ul className="hitel-comment-list">
           {comments.map((c) => (
