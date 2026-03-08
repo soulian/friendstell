@@ -3,7 +3,7 @@ import { Link, useParams, Navigate, useNavigate } from 'react-router-dom'
 import {
   getHome,
   getPosts,
-  getHomeUniqueAuthors,
+  getHomeAuthorActivity,
   getBoardDisplayName,
 } from '../data/mock'
 import './FriendsHome.css'
@@ -106,6 +106,14 @@ function formatRecentPostTime(createdAt) {
   return `${years}년 전`
 }
 
+function isActiveToday(createdAt) {
+  const timestamp = Number(createdAt)
+  if (!Number.isFinite(timestamp)) return false
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  return timestamp >= startOfToday.getTime()
+}
+
 export default function FriendsHome() {
   const { homeId } = useParams()
   const navigate = useNavigate()
@@ -113,7 +121,7 @@ export default function FriendsHome() {
   const [home, setHome] = useState(null)
   const [loading, setLoading] = useState(true)
   const [recentPosts, setRecentPosts] = useState([])
-  const [uniqueAuthors, setUniqueAuthors] = useState([])
+  const [authorActivity, setAuthorActivity] = useState([])
   const [weatherTheme, setWeatherTheme] = useState(getFallbackWeatherTheme().theme)
   const [weatherLabel, setWeatherLabel] = useState(getFallbackWeatherTheme().label)
   const [counts, setCounts] = useState({
@@ -125,13 +133,13 @@ export default function FriendsHome() {
 
   const loadHomeData = useCallback(async () => {
     setLoading(true)
-    const [nextHome, noticePosts, freePosts, newsPosts, tempPosts, uniqueAuthors] = await Promise.all([
+    const [nextHome, noticePosts, freePosts, newsPosts, tempPosts, nextAuthorActivity] = await Promise.all([
       getHome(homeId),
       getPosts(homeId, 'notice'),
       getPosts(homeId, 'free'),
       getPosts(homeId, 'news'),
       getPosts(homeId, 'temp'),
-      getHomeUniqueAuthors(homeId),
+      getHomeAuthorActivity(homeId),
     ])
 
     setHome(nextHome)
@@ -141,7 +149,7 @@ export default function FriendsHome() {
       news: newsPosts.length,
       temp: tempPosts.length,
     })
-    setUniqueAuthors(uniqueAuthors)
+    setAuthorActivity(nextAuthorActivity)
     setRecentPosts(
       [
         { boardId: 'notice', list: noticePosts },
@@ -259,12 +267,12 @@ export default function FriendsHome() {
     return <Navigate to="/create" replace />
   }
 
-  const uniqueWriterCount = uniqueAuthors.length
-  const friendAvatarCount = Math.min(uniqueWriterCount, 4)
+  const uniqueWriterCount = authorActivity.length
+  const friendAvatarCount = Math.min(uniqueWriterCount, 5)
   const miniroomMood = uniqueWriterCount === 0 ? 'quiet' : uniqueWriterCount >= 4 ? 'busy' : 'warm'
   const miniroomSummary = uniqueWriterCount === 0
-    ? '아직 방문한 친구가 없어요. 첫 글을 남겨 친구를 초대해 보세요.'
-    : `오늘 방문한 친구 ${uniqueWriterCount}명과 함께 미니룸이 더 활기차졌어요.`
+    ? '아직 글이나 댓글을 남긴 사람이 없어요.'
+    : `글/댓글을 남긴 친구 ${uniqueWriterCount}명과 함께 미니룸이 더 활기차졌어요.`
   const avatarSeatClasses = [
     'is-host',
     'is-seat-1',
@@ -277,8 +285,7 @@ export default function FriendsHome() {
     const idx = hashString(seed) % AVATAR_VARIANTS.length
     return AVATAR_VARIANTS[idx]
   }
-  const avatarNames = ['홈지기', ...uniqueAuthors.slice(0, 4)]
-  const avatarsToRender = avatarNames.slice(0, friendAvatarCount + 1)
+  const avatarsToRender = authorActivity.slice(0, friendAvatarCount)
 
   return (
     <div className="friends-home hitel-card">
@@ -361,13 +368,18 @@ export default function FriendsHome() {
           <span className="friends-home-camp-tent is-sub" />
           <span className="friends-home-camp-fire" />
           <div className="friends-home-miniroom-avatars">
-            {avatarsToRender.map((avatarName, index) => (
+            {avatarsToRender.map((author, index) => (
               <div
-                key={`mini-avatar-${index}`}
-                className={`friends-home-miniroom-avatar-wrap ${avatarSeatClasses[index]}`}
+                key={`mini-avatar-${author.name}`}
+                className={`friends-home-miniroom-avatar-wrap ${avatarSeatClasses[index]} ${isActiveToday(author.lastActivityAt) ? '' : 'is-sleeping'}`}
               >
+                {!isActiveToday(author.lastActivityAt) && (
+                  <span className="friends-home-miniroom-avatar-sleep" aria-label={`${author.name} 휴식 중`}>
+                    zzz
+                  </span>
+                )}
                 <span className={`friends-home-miniroom-avatar ${getAvatarVariantClass(index)}`} />
-                <span className="friends-home-miniroom-avatar-name">{avatarName}</span>
+                <span className="friends-home-miniroom-avatar-name">{author.name}</span>
               </div>
             ))}
           </div>

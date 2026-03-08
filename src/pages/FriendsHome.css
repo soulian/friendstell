@@ -312,6 +312,11 @@
   justify-content: flex-end;
 }
 
+.friends-home-miniroom-avatar-wrap.is-sleeping .friends-home-miniroom-avatar {
+  animation: none;
+  opacity: 0.8;
+}
+
 .friends-home-miniroom-avatar {
   --avatar-body: #4d7bd9;
   --avatar-skin: #ffd2bf;
@@ -400,6 +405,17 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.friends-home-miniroom-avatar-sleep {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #dbeafe;
+  text-shadow: 0 1px 0 #0f172a;
+  letter-spacing: 0.6px;
 }
 
 .friends-home-miniroom-avatar.is-variant-1 {

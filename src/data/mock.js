@@ -8,9 +8,34 @@ const PENDING_MUTATIONS_KEY = 'friends_tell_pending_mutations_v1'
 const SHARED_WRITE_ERROR_MESSAGE = '공용 DB 연결 문제로 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.'
 
 const AI_IT_HOME_ID = 'home_ai_it_meetup'
-const AI_IT_HOME_TITLE = 'AI IT 모임 프렌즈홈'
+const AI_IT_HOME_TITLE = '분당IT 모임'
 const AI_SEED_HOME_CREATED_AT = Date.parse('2026-03-07T08:30:00+09:00')
 const AI_DEFAULT_TOPIC = 'IT모임'
+const AI_ACTIVITY_INTERVAL_MS = 30 * 60 * 1000
+const AI_ACTIVITY_START_AT = Date.parse('2026-03-07T12:00:00+09:00')
+const AI_ACTIVITY_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000
+const AI_ACTIVITY_BOARDS = ['free', 'news', 'temp']
+const AI_HOME_TITLE_ALIASES = new Set([
+  'ai it 모임',
+  'ai it 모임 프렌즈홈',
+  'it 모임',
+  'it 모임 프렌즈홈',
+  '분당it 모임',
+])
+const AI_AUTO_POST_TOPICS = [
+  '이번 스프린트 진행 상황 공유',
+  '오늘 배운 기술 인사이트',
+  '배포/운영 체크포인트',
+  '코드리뷰에서 발견한 개선점',
+  '다음 모임 아젠다 제안',
+]
+const AI_AUTO_COMMENT_SNIPPETS = [
+  '좋은 포인트네요. 바로 적용 가능한 액션으로 정리해둘게요.',
+  '관련 사례를 한 가지 더 찾아서 다음 스레드에 공유하겠습니다.',
+  '성능/안정성 기준으로 우선순위를 잡아 진행하면 좋겠습니다.',
+  '테스트 관점에서도 동일하게 확인해보면 좋겠어요.',
+  '다음 30분 체크인 때 진행 결과를 업데이트해볼게요.',
+]
 
 const AI_PERSONAS = [
   { name: 'FE 유나', role: '프론트엔드' },
@@ -155,8 +180,8 @@ function normalizeHomeTitle(title) {
   const trimmed = (title || '').trim()
   if (!trimmed) return trimmed
   const simplified = trimmed.replace(/\s+/g, ' ').toLowerCase()
-  if (simplified === 'ai it 모임') {
-    return 'IT 모임'
+  if (AI_HOME_TITLE_ALIASES.has(simplified)) {
+    return AI_IT_HOME_TITLE
   }
   return trimmed
 }
@@ -384,13 +409,100 @@ function ensureAiSeedContent(postsMap, commentsMap) {
   return { posts, comments }
 }
 
+function formatAiActivityTime(createdAt) {
+  try {
+    return new Intl.DateTimeFormat('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Seoul',
+    }).format(createdAt)
+  } catch (_) {
+    return ''
+  }
+}
+
+function findLatestAiPostBefore(posts, timestamp) {
+  let latestPost = null
+  Object.entries(posts || {}).forEach(([key, postList]) => {
+    const [homeId] = key.split(':')
+    if (homeId !== AI_IT_HOME_ID) return
+    ;(postList || []).forEach((post) => {
+      const createdAt = Number(post?.createdAt)
+      if (!Number.isFinite(createdAt) || createdAt > timestamp) return
+      if (!latestPost || createdAt > Number(latestPost.createdAt || 0)) {
+        latestPost = post
+      }
+    })
+  })
+  return latestPost
+}
+
+function ensureAiRollingActivity(postsMap, commentsMap) {
+  const posts = { ...(postsMap || {}) }
+  const comments = { ...(commentsMap || {}) }
+  const nowTimestamp = now()
+  const latestSlot = Math.floor(nowTimestamp / AI_ACTIVITY_INTERVAL_MS) * AI_ACTIVITY_INTERVAL_MS
+  const earliestSlot = Math.max(
+    AI_ACTIVITY_START_AT,
+    latestSlot - AI_ACTIVITY_LOOKBACK_MS
+  )
+
+  for (let slotAt = earliestSlot; slotAt <= latestSlot; slotAt += AI_ACTIVITY_INTERVAL_MS) {
+    const slotIndex = Math.floor((slotAt - AI_ACTIVITY_START_AT) / AI_ACTIVITY_INTERVAL_MS)
+    if (slotIndex < 0) continue
+    const persona = AI_PERSONAS[slotIndex % AI_PERSONAS.length]
+    if (!persona) continue
+
+    // 30분 슬롯마다 글/댓글을 번갈아 생성한다.
+    if (slotIndex % 2 === 0) {
+      const boardId = AI_ACTIVITY_BOARDS[slotIndex % AI_ACTIVITY_BOARDS.length]
+      const postId = `ai_auto_post_${slotAt}`
+      const boardKey = toBoardKey(AI_IT_HOME_ID, boardId)
+      const list = Array.isArray(posts[boardKey]) ? [...posts[boardKey]] : []
+      if (!list.some((post) => post?.id === postId)) {
+        const topic = AI_AUTO_POST_TOPICS[slotIndex % AI_AUTO_POST_TOPICS.length]
+        list.push({
+          id: postId,
+          title: `[30분 체크인] ${topic}`,
+          body: `${persona.role} 관점으로 ${topic}을(를) 정리합니다. (${formatAiActivityTime(slotAt)})`,
+          author: persona.name,
+          createdAt: slotAt,
+          views: 0,
+        })
+      }
+      posts[boardKey] = list
+      continue
+    }
+
+    const targetPost = findLatestAiPostBefore(posts, slotAt)
+    if (!targetPost?.id || !targetPost?.boardId) continue
+    const commentId = `ai_auto_comment_${slotAt}`
+    const commentKey = toCommentKey(AI_IT_HOME_ID, targetPost.boardId, targetPost.id)
+    const list = Array.isArray(comments[commentKey]) ? [...comments[commentKey]] : []
+    if (!list.some((comment) => comment?.id === commentId)) {
+      const snippet = AI_AUTO_COMMENT_SNIPPETS[slotIndex % AI_AUTO_COMMENT_SNIPPETS.length]
+      list.push({
+        id: commentId,
+        body: `${snippet} (${persona.role})`,
+        author: persona.name,
+        createdAt: slotAt,
+      })
+    }
+    comments[commentKey] = list
+  }
+
+  return { posts, comments }
+}
+
 function applyAiSeed(snapshot) {
   const seededHomes = ensureAiHomeSeed(snapshot?.homes || [])
   const seededContent = ensureAiSeedContent(snapshot?.posts, snapshot?.comments)
+  const rollingContent = ensureAiRollingActivity(seededContent.posts, seededContent.comments)
   return {
     homes: seededHomes,
-    posts: seededContent.posts,
-    comments: seededContent.comments,
+    posts: rollingContent.posts,
+    comments: rollingContent.comments,
   }
 }
 
@@ -745,28 +857,30 @@ function normalizeAuthor(author) {
   return author.trim()
 }
 
-/**
- * homeId 기준 유니크 작성자 목록(닉네임 문자열 기준)을 반환한다.
- * 현재 제품에는 userId가 없으므로 동일 닉네임은 같은 사용자로 본다.
- */
-export async function getHomeUniqueAuthors(homeId, options = {}) {
-  await ensureSynced()
+function collectHomeAuthorActivity(homeId, options = {}) {
   const { includeComments = true, excludedBoards = ['notice'] } = options
   const excludedBoardSet = new Set(excludedBoards)
-  const authors = new Set()
+  const activityByAuthor = new Map()
+  const updateActivity = (author, createdAt) => {
+    const normalizedAuthor = normalizeAuthor(author)
+    if (!normalizedAuthor) return
+    const current = activityByAuthor.get(normalizedAuthor) || 0
+    const nextCreatedAt = Number(createdAt)
+    const safeCreatedAt = Number.isFinite(nextCreatedAt) ? nextCreatedAt : 0
+    activityByAuthor.set(normalizedAuthor, Math.max(current, safeCreatedAt))
+  }
 
   Object.entries(cache.posts || {}).forEach(([key, posts]) => {
     const [postHomeId, boardId] = key.split(':')
     if (postHomeId !== homeId || excludedBoardSet.has(boardId)) return
     const postList = posts || []
     postList.forEach((post) => {
-      const author = normalizeAuthor(post?.author)
-      if (author) authors.add(author)
+      updateActivity(post?.author, post?.createdAt)
     })
   })
 
   if (!includeComments) {
-    return Array.from(authors)
+    return activityByAuthor
   }
 
   Object.entries(cache.comments || {}).forEach(([key, comments]) => {
@@ -774,12 +888,32 @@ export async function getHomeUniqueAuthors(homeId, options = {}) {
     if (commentHomeId !== homeId || excludedBoardSet.has(boardId)) return
     const commentList = comments || []
     commentList.forEach((comment) => {
-      const author = normalizeAuthor(comment?.author)
-      if (author) authors.add(author)
+      updateActivity(comment?.author, comment?.createdAt)
     })
   })
 
-  return Array.from(authors)
+  return activityByAuthor
+}
+
+/**
+ * homeId 기준 유니크 작성자 목록(닉네임 문자열 기준)을 반환한다.
+ * 현재 제품에는 userId가 없으므로 동일 닉네임은 같은 사용자로 본다.
+ */
+export async function getHomeUniqueAuthors(homeId, options = {}) {
+  await ensureSynced()
+  const activityByAuthor = collectHomeAuthorActivity(homeId, options)
+  return Array.from(activityByAuthor.keys())
+}
+
+export async function getHomeAuthorActivity(homeId, options = {}) {
+  await ensureSynced()
+  const activityByAuthor = collectHomeAuthorActivity(homeId, options)
+  return Array.from(activityByAuthor.entries())
+    .map(([name, lastActivityAt]) => ({
+      name,
+      lastActivityAt: Number(lastActivityAt) || 0,
+    }))
+    .sort((a, b) => (b.lastActivityAt || 0) - (a.lastActivityAt || 0))
 }
 
 export function isSharedWriteError(error) {
