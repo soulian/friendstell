@@ -3,7 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   addPost,
   checkOperatorPassword,
+  getSharedWriteErrorMessage,
   getStoredNickname,
+  isSharedWriteError,
   setStoredNickname,
 } from '../data/mock'
 import './PostWrite.css'
@@ -18,6 +20,7 @@ export default function PostWrite() {
   const [nickname, setNickname] = useState('')
   const [operatorPw, setOperatorPw] = useState('')
   const [operatorError, setOperatorError] = useState('')
+  const [submitError, setSubmitError] = useState('')
   const [passwordChecked, setPasswordChecked] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -45,6 +48,7 @@ export default function PostWrite() {
     }
 
     if (!title.trim()) return
+    setSubmitError('')
     setSubmitting(true)
 
     try {
@@ -64,6 +68,12 @@ export default function PostWrite() {
           author,
         })
         navigate(`/home/${homeId}/board/${boardId}/post/${post.id}`)
+      }
+    } catch (err) {
+      if (isSharedWriteError(err)) {
+        setSubmitError(getSharedWriteErrorMessage())
+      } else {
+        setSubmitError('글 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.')
       }
     } finally {
       setSubmitting(false)
@@ -94,6 +104,7 @@ export default function PostWrite() {
               onChange={(e) => {
                 setOperatorPw(e.target.value)
                 setOperatorError('')
+                setSubmitError('')
               }}
               autoComplete="current-password"
               disabled={submitting}
@@ -113,7 +124,10 @@ export default function PostWrite() {
                   className="hitel-input"
                   placeholder="닉네임 (미입력 시 익명)"
                   value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
+                  onChange={(e) => {
+                    setNickname(e.target.value)
+                    setSubmitError('')
+                  }}
                   maxLength={20}
                   disabled={submitting}
                 />
@@ -126,7 +140,10 @@ export default function PostWrite() {
                 className="hitel-input"
                 placeholder="제목을 입력하세요"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value)
+                  setSubmitError('')
+                }}
                 maxLength={200}
                 disabled={submitting}
               />
@@ -137,13 +154,17 @@ export default function PostWrite() {
                 className="hitel-textarea"
                 placeholder="내용을 입력하세요"
                 value={body}
-                onChange={(e) => setBody(e.target.value)}
+                onChange={(e) => {
+                  setBody(e.target.value)
+                  setSubmitError('')
+                }}
                 rows={12}
                 disabled={submitting}
               />
             </label>
           </>
         )}
+        {submitError && <p className="hitel-error">{submitError}</p>}
         <div className="hitel-form-actions">
           <button type="submit" className="hitel-btn" disabled={submitting}>
             {submitting ? '[ 등록중... ]' : (needPasswordStep ? '[ 비밀번호 확인 ]' : '[ 등록 ]')}

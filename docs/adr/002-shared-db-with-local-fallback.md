@@ -11,8 +11,9 @@ Accepted
 ## 결정
 - 클라이언트 데이터 계층(`src/data/mock.js`)을 **공용 API 우선** 구조로 변경한다.
   - 1순위: `/api/shared-data` 호출
-  - 실패/미구성 시: localStorage 자동 폴백
-  - 폴백 중 생성한 변경은 outbox(`friends_tell_pending_mutations_v1`)에 저장하고, API 복구 시 자동 재동기화한다.
+  - 개발/프리뷰 런타임 실패/미구성 시: localStorage 자동 폴백
+  - 운영(프로덕션) 런타임 실패/미구성 시: 로컬 폴백을 허용하지 않고 쓰기 작업을 차단
+  - 개발/프리뷰 폴백 중 생성한 변경은 outbox(`friends_tell_pending_mutations_v1`)에 저장하고, API 복구 시 자동 재동기화한다.
 - 서버리스 API(`api/shared-data.js`)를 추가한다.
   - 저장소: Upstash Redis (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`)
   - 데이터 키: `friends_tell:shared_db:v1` (백업 키: `friends_tell:shared_db:v1:backup`)
@@ -32,7 +33,7 @@ Accepted
 
 ## 롤백
 - 코드 롤백: ADR 002 적용 커밋 revert.
-- 운영 롤백(일시): Vercel에서 `UPSTASH_REDIS_*` 환경변수를 제거하면 자동으로 localStorage 폴백 모드로 동작.
+- 운영 롤백(일시): Vercel에서 `UPSTASH_REDIS_*` 환경변수를 제거하면 운영 런타임에서는 쓰기 차단 모드가 되며, 개발/프리뷰에서만 localStorage 폴백 모드로 동작한다.
 - 데이터 키 호환: `friends_tell:shared_db:v1` 스키마 변경 시 `v2` 키로 분리해 점진 이전한다.
 
 ## 참고
