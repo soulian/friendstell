@@ -328,8 +328,10 @@ export default function FriendsHome() {
                 <li key={`${post.boardId}-${post.id}`} className="friends-home-recent-item">
                   <Link to={`/home/${homeId}/board/${post.boardId}/post/${post.id}`} className="friends-home-recent-link">
                     <span className="friends-home-recent-board">[{getBoardDisplayName(homeId, post.boardId)}]</span>
-                    <span className="friends-home-recent-title">{post.title}</span>
-                    <span className="friends-home-recent-time">{formatRecentPostTime(post.createdAt)}</span>
+                    <span className="friends-home-recent-main">
+                      <span className="friends-home-recent-title">{post.title}</span>
+                      <span className="friends-home-recent-time">{formatRecentPostTime(post.createdAt)}</span>
+                    </span>
                   </Link>
                 </li>
               ))}

@@ -59,9 +59,7 @@
 }
 
 .friends-home-recent-link {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
+  display: block;
   color: var(--hitel-link);
   text-decoration: none;
 }
@@ -71,13 +69,22 @@
 }
 
 .friends-home-recent-board {
+  display: block;
   color: var(--hitel-highlight-yellow);
   font-size: 12px;
   white-space: nowrap;
 }
 
+.friends-home-recent-main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
 .friends-home-recent-title {
   color: var(--hitel-text-bright);
+  overflow-wrap: anywhere;
 }
 
 .friends-home-recent-time {
