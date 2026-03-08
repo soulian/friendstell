@@ -67,6 +67,7 @@ npm run preview
 2. 되돌리기: `git revert <commit>` 또는 `git reset --hard <commit>` 후 force push (팀 정책에 따름)
 3. `main`에 푸시하면 해당 커밋 기준으로 재배포됨
 4. **주의**: `src/data/mock.js` 스키마·키 변경 시 기존 사용자 localStorage와 불일치할 수 있음. 필요 시 마이그레이션 또는 안내 문구 고려.
+   - 현재 버전은 기본 시드 홈(`home_ai_it_meetup`)과 시드 게시글/댓글을 자동 보정한다. 롤백 시 시드 데이터 노출 방식(자동 주입 여부)을 함께 확인한다.
 5. Vercel 라우팅 이슈가 생기면 `vercel.json`의 rewrite 변경 커밋을 우선 롤백한다.
 6. 공용 DB 장애 시 임시 완화: Vercel 환경변수 `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`을 제거/비활성화하면 클라이언트가 localStorage 폴백 모드로 동작한다.
 7. 공용 DB 키(`friends_tell:shared_db:v1`) 스키마를 변경할 때는 `v2` 키를 병행 운영하고 이전 절차를 문서화한다.
