@@ -279,7 +279,7 @@ export default function FriendsHome() {
   const miniroomMood = uniqueWriterCount === 0 ? 'quiet' : uniqueWriterCount >= 4 ? 'busy' : 'warm'
   const miniroomSummary = uniqueWriterCount === 0
     ? '아직 글이나 댓글을 남긴 사람이 없어요.'
-    : `글/댓글을 남긴 친구 ${uniqueWriterCount}명과 함께 미니룸이 더 활기차졌어요.`
+    : `글/댓글을 남긴 친구 ${uniqueWriterCount}명과 함께 프렌즈홈이 더 활기차졌어요.`
   const avatarSeatClasses = [
     'is-host',
     'is-seat-1',

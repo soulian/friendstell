@@ -6,6 +6,7 @@ const LEGACY_DB_KEYS = [
   'friends_tell:shared_db:v0',
 ]
 const BACKUP_DB_KEY = 'friends_tell:shared_db:v1:backup'
+const REMOVED_BOARD_ID_TOKENS = new Set(['test1', 'test2', '테스트1', '테스트2'])
 const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
   ? Redis.fromEnv()
   : null
@@ -23,11 +24,32 @@ function normalizeDb(input) {
     ...home,
     title: normalizeHomeTitle(home?.title),
   })) : []
+  const normalizedPosts = {}
+  Object.entries(input?.posts && typeof input.posts === 'object' ? input.posts : {}).forEach(([key, list]) => {
+    const [, boardId] = key.split(':')
+    if (isRemovedBoardId(boardId)) return
+    normalizedPosts[key] = Array.isArray(list) ? list : []
+  })
+  const normalizedComments = {}
+  Object.entries(input?.comments && typeof input.comments === 'object' ? input.comments : {}).forEach(([key, list]) => {
+    const [, boardId] = key.split(':')
+    if (isRemovedBoardId(boardId)) return
+    normalizedComments[key] = Array.isArray(list) ? list : []
+  })
   return {
     homes: normalizedHomes,
-    posts: input?.posts && typeof input.posts === 'object' ? input.posts : {},
-    comments: input?.comments && typeof input.comments === 'object' ? input.comments : {},
+    posts: normalizedPosts,
+    comments: normalizedComments,
   }
+}
+
+function normalizeBoardToken(boardId) {
+  if (typeof boardId !== 'string') return ''
+  return boardId.replace(/\s+/g, '').trim().toLowerCase()
+}
+
+function isRemovedBoardId(boardId) {
+  return REMOVED_BOARD_ID_TOKENS.has(normalizeBoardToken(boardId))
 }
 
 function normalizeHomeTitle(title) {
@@ -157,6 +179,9 @@ function applyMutation(db, op, payload = {}) {
   }
 
   if (op === 'addPost') {
+    if (isRemovedBoardId(payload.boardId)) {
+      return { db: next, result: null }
+    }
     const key = `${payload.homeId}:${payload.boardId}`
     const list = Array.isArray(next.posts[key]) ? [...next.posts[key]] : []
     const id = postId(payload.id)
@@ -179,6 +204,9 @@ function applyMutation(db, op, payload = {}) {
   }
 
   if (op === 'increaseViews') {
+    if (isRemovedBoardId(payload.boardId)) {
+      return { db: next, result: null }
+    }
     const key = `${payload.homeId}:${payload.boardId}`
     const list = Array.isArray(next.posts[key]) ? [...next.posts[key]] : []
     const post = list.find((item) => item.id === payload.postId)
@@ -189,6 +217,9 @@ function applyMutation(db, op, payload = {}) {
   }
 
   if (op === 'addComment') {
+    if (isRemovedBoardId(payload.boardId)) {
+      return { db: next, result: null }
+    }
     const key = `${payload.homeId}:${payload.boardId}:${payload.postId}`
     const list = Array.isArray(next.comments[key]) ? [...next.comments[key]] : []
     const id = commentId(payload.id)

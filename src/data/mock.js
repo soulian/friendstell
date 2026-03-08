@@ -6,6 +6,7 @@ const SHARED_SYNC_TTL_MS = 5000
 const REMOTE_RETRY_INTERVAL_MS = 30000
 const PENDING_MUTATIONS_KEY = 'friends_tell_pending_mutations_v1'
 const SHARED_WRITE_ERROR_MESSAGE = '공용 DB 연결 문제로 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+const REMOVED_BOARD_ID_TOKENS = new Set(['test1', 'test2', '테스트1', '테스트2'])
 
 const AI_IT_HOME_ID = 'home_ai_it_meetup'
 const AI_IT_HOME_TITLE = '분당IT 모임'
@@ -198,11 +199,32 @@ function normalizeSnapshot(snapshot) {
     posts: snapshot?.posts && typeof snapshot.posts === 'object' ? snapshot.posts : {},
     comments: snapshot?.comments && typeof snapshot.comments === 'object' ? snapshot.comments : {},
   })
+  const posts = {}
+  Object.entries(seeded.posts || {}).forEach(([key, list]) => {
+    const [, boardId] = key.split(':')
+    if (isRemovedBoardId(boardId)) return
+    posts[key] = Array.isArray(list) ? list : []
+  })
+  const comments = {}
+  Object.entries(seeded.comments || {}).forEach(([key, list]) => {
+    const [, boardId] = key.split(':')
+    if (isRemovedBoardId(boardId)) return
+    comments[key] = Array.isArray(list) ? list : []
+  })
   return {
     homes: seeded.homes,
-    posts: seeded.posts,
-    comments: seeded.comments,
+    posts,
+    comments,
   }
+}
+
+function normalizeBoardToken(boardId) {
+  if (typeof boardId !== 'string') return ''
+  return boardId.replace(/\s+/g, '').trim().toLowerCase()
+}
+
+function isRemovedBoardId(boardId) {
+  return REMOVED_BOARD_ID_TOKENS.has(normalizeBoardToken(boardId))
 }
 
 function loadHomesFromLocal() {
