@@ -34,7 +34,7 @@ const AI_AUTO_COMMENT_SNIPPETS = [
   '관련 사례를 한 가지 더 찾아서 다음 스레드에 공유하겠습니다.',
   '성능/안정성 기준으로 우선순위를 잡아 진행하면 좋겠습니다.',
   '테스트 관점에서도 동일하게 확인해보면 좋겠어요.',
-  '다음 30분 체크인 때 진행 결과를 업데이트해볼게요.',
+  '다음 업데이트 때 진행 결과를 공유해볼게요.',
 ]
 
 const AI_PERSONAS = [
@@ -464,7 +464,7 @@ function ensureAiRollingActivity(postsMap, commentsMap) {
         const topic = AI_AUTO_POST_TOPICS[slotIndex % AI_AUTO_POST_TOPICS.length]
         list.push({
           id: postId,
-          title: `[30분 체크인] ${topic}`,
+          title: topic,
           body: `${persona.role} 관점으로 ${topic}을(를) 정리합니다. (${formatAiActivityTime(slotAt)})`,
           author: persona.name,
           createdAt: slotAt,
