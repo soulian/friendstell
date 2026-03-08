@@ -2,8 +2,9 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { getHome } from './data/mock'
 
-const DEFAULT_TITLE = '프렌즈텔 - 친구와 함께 쓰는 게시판'
-const DEFAULT_DESC = '친구와 함께 쓰는 게시판을 만들고, 링크를 공유해 보세요.'
+const DEFAULT_TITLE = '프렌즈텔 | 우리만의 프렌즈홈 게시판을 만들고 친구와 지금 바로 대화해요'
+const DEFAULT_DESC = '프렌즈텔에서 우리 모임 전용 프렌즈홈을 만들고 링크 하나로 친구를 초대하세요. 공지, 자유글, 소식, 임시 게시판을 함께 쓰며 캠핑장 미니룸 활동까지 한눈에 확인할 수 있어요.'
+const DEFAULT_IMAGE_PATH = '/api/og-image'
 
 export function usePageMeta() {
   const { pathname } = useLocation()
@@ -22,9 +23,11 @@ export function usePageMeta() {
       const home = homeId ? await getHome(homeId) : null
       if (cancelled) return
 
-      const title = home ? `프렌즈텔 - ${home.title}` : DEFAULT_TITLE
+      const title = home
+        ? `${home.title} 프렌즈홈 | 친구들과 함께 쓰는 게시판에 지금 참여해요`
+        : DEFAULT_TITLE
       const description = home
-        ? `${home.title} - 친구와 함께 쓰는 프렌즈텔 게시판`
+        ? `${home.title} 프렌즈홈에 초대합니다. 링크를 열면 공지, 자유글, 소식, 임시 게시판을 바로 함께 쓸 수 있어요. 지금 접속해 글과 댓글을 남기고 미니룸 분위기도 같이 키워보세요.`
         : DEFAULT_DESC
 
       document.title = title
@@ -37,7 +40,7 @@ export function usePageMeta() {
       if (ogImage && typeof window !== 'undefined') {
         const imagePath = homeId
           ? `/api/og-image?homeId=${encodeURIComponent(homeId)}`
-          : '/api/og-image'
+          : DEFAULT_IMAGE_PATH
         ogImage.setAttribute('content', window.location.origin + imagePath)
       }
     }
@@ -50,7 +53,9 @@ export function usePageMeta() {
       if (descEl) descEl.setAttribute('content', DEFAULT_DESC)
       if (ogTitle) ogTitle.setAttribute('content', DEFAULT_TITLE)
       if (ogDesc) ogDesc.setAttribute('content', DEFAULT_DESC)
-      if (ogImage) ogImage.setAttribute('content', '')
+      if (ogImage && typeof window !== 'undefined') {
+        ogImage.setAttribute('content', window.location.origin + DEFAULT_IMAGE_PATH)
+      }
     }
   }, [pathname])
 }

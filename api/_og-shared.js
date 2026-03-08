@@ -1,8 +1,8 @@
 const DEFAULT_TIMEOUT_MS = 1800
 
 const DEFAULT_META = {
-  title: '프렌즈텔 - 친구와 함께 쓰는 게시판',
-  description: '친구와 함께 쓰는 게시판을 만들고, 링크를 공유해 보세요.',
+  title: '프렌즈텔 | 우리만의 프렌즈홈 게시판을 만들고 친구와 지금 바로 대화해요',
+  description: '프렌즈텔에서 우리 모임 전용 프렌즈홈을 만들고 링크 하나로 친구를 초대하세요. 공지, 자유글, 소식, 임시 게시판을 함께 쓰며 캠핑장 미니룸 활동까지 한눈에 확인할 수 있어요.',
 }
 
 function toStringValue(value) {
@@ -104,8 +104,8 @@ export function buildMetaByHome(home) {
     return { ...DEFAULT_META }
   }
   return {
-    title: `프렌즈텔 - ${home.title}`,
-    description: `${home.title} - 친구와 함께 쓰는 프렌즈텔 게시판`,
+    title: `${home.title} 프렌즈홈 | 친구들과 함께 쓰는 게시판에 지금 참여해요`,
+    description: `${home.title} 프렌즈홈에 초대합니다. 링크를 열면 공지, 자유글, 소식, 임시 게시판을 바로 함께 쓸 수 있어요. 지금 접속해 글과 댓글을 남기고 미니룸 분위기도 같이 키워보세요.`,
   }
 }
 
