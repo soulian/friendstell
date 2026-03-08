@@ -29,42 +29,60 @@
   outline: none;
 }
 
-.friends-home-miniroom {
+.friends-home-friendsroom {
+  --avatar-color-1: #5a79d6;
+  --avatar-color-2: #d16b72;
+  --avatar-color-3: #6e9f66;
+  --avatar-color-4: #a278d9;
+  --avatar-color-5: #b7854e;
+  --avatar-color-6: #3d8fa5;
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--hitel-border);
 }
 
-.friends-home-miniroom .hitel-title {
+.friends-home-friendsroom .hitel-title {
   margin-top: 0;
 }
 
-.friends-home-miniroom-scene {
+.friends-home-friendsroom-scene {
   position: relative;
-  height: 210px;
-  border: 1px solid var(--hitel-border);
-  background: linear-gradient(180deg, #f6f9ff 0%, #e8efff 64%, #c7d7ff 100%);
-  overflow: hidden;
+  height: 246px;
   margin-top: 8px;
+  overflow: hidden;
+  border: 2px solid #4e5f93;
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 2px #8aa0e2;
+  background:
+    linear-gradient(90deg, rgba(89, 113, 182, 0.12) 1px, transparent 1px) 0 0 / 12px 12px,
+    linear-gradient(0deg, rgba(89, 113, 182, 0.12) 1px, transparent 1px) 0 0 / 12px 12px,
+    linear-gradient(180deg, #dce9ff 0%, #bdd2ff 64%, #9db9f7 100%);
 }
 
-.friends-home-miniroom-wall {
+.friends-home-friendsroom-wall {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 62%;
-  background: linear-gradient(180deg, #f6f9ff 0%, #dce8ff 100%);
-  border-bottom: 1px solid #a0b6ef;
+  height: 60%;
+  border-bottom: 2px solid #5d75b6;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.22) 0,
+      rgba(255, 255, 255, 0.22) 6px,
+      rgba(206, 220, 255, 0.22) 6px,
+      rgba(206, 220, 255, 0.22) 12px
+    );
 }
 
 .friends-home-wall-frame {
   position: absolute;
-  width: 42px;
-  height: 32px;
-  border: 2px solid #6780c8;
-  background: #ffffff;
-  box-shadow: inset 0 0 0 2px #b5c7f2;
+  width: 46px;
+  height: 34px;
+  border: 3px solid #4d66a9;
+  box-shadow: inset 0 0 0 2px #afc0ec;
+  background: #edf3ff;
 }
 
 .friends-home-wall-frame.is-frame-1 {
@@ -74,31 +92,31 @@
 
 .friends-home-wall-frame.is-frame-2 {
   top: 26px;
-  left: 70px;
+  left: 74px;
 }
 
 .friends-home-wall-window {
   position: absolute;
-  top: 14px;
-  right: 24px;
-  width: 92px;
-  height: 54px;
-  border: 2px solid #6680cf;
-  background: linear-gradient(180deg, #9cd9ff 0%, #eaf8ff 100%);
+  top: 16px;
+  right: 20px;
+  width: 100px;
+  height: 58px;
+  border: 3px solid #4d66a9;
+  background: linear-gradient(180deg, #88ccff 0%, #d5f1ff 100%);
 }
 
 .friends-home-wall-window::before,
 .friends-home-wall-window::after {
   content: '';
   position: absolute;
-  background: rgba(73, 103, 182, 0.65);
+  background: rgba(74, 104, 181, 0.65);
 }
 
 .friends-home-wall-window::before {
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 2px;
+  width: 3px;
   transform: translateX(-50%);
 }
 
@@ -106,169 +124,134 @@
   left: 0;
   right: 0;
   top: 50%;
-  height: 2px;
+  height: 3px;
   transform: translateY(-50%);
 }
 
-.friends-home-miniroom-floor {
+.friends-home-friendsroom-floor {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   height: 44%;
+  border-top: 2px solid #73543b;
   background: repeating-linear-gradient(
     90deg,
-    #caa880 0,
-    #caa880 14px,
-    #bc9871 14px,
-    #bc9871 28px
+    #ca9e71 0,
+    #ca9e71 12px,
+    #b18458 12px,
+    #b18458 24px
   );
-  border-top: 1px solid #9c7b56;
 }
 
-.friends-home-miniroom-furniture {
+.friends-home-friendsroom-furniture {
   position: absolute;
   display: block;
+  border: 3px solid #41548f;
 }
 
-.friends-home-miniroom-furniture.is-sofa {
-  width: 86px;
-  height: 42px;
+.friends-home-friendsroom-furniture.is-sofa {
+  width: 92px;
+  height: 48px;
   left: 12px;
-  bottom: 16px;
-  border: 2px solid #5f5aa6;
-  border-radius: 10px 10px 6px 6px;
-  background: linear-gradient(180deg, #7f78d4 0%, #5d58a7 100%);
+  bottom: 18px;
+  background: linear-gradient(180deg, #9588df 0%, #6a5eb8 100%);
 }
 
-.friends-home-miniroom-furniture.is-table {
-  width: 46px;
-  height: 24px;
-  right: 20px;
-  bottom: 24px;
-  border: 2px solid #7d5d3d;
-  background: #a47b55;
+.friends-home-friendsroom-furniture.is-table {
+  width: 56px;
+  height: 26px;
+  right: 18px;
+  bottom: 28px;
+  border-color: #714b28;
+  background: #a6764f;
 }
 
-.friends-home-miniroom-furniture.is-table::after {
+.friends-home-friendsroom-furniture.is-monitor {
+  width: 32px;
+  height: 22px;
+  right: 30px;
+  bottom: 58px;
+  border-color: #2a3d63;
+  background: linear-gradient(180deg, #8bd0ff 0%, #3e89cc 100%);
+}
+
+.friends-home-friendsroom-furniture.is-monitor::after {
   content: '';
   position: absolute;
-  width: 10px;
-  height: 10px;
-  top: -10px;
-  left: 16px;
-  border: 2px solid #558f57;
-  background: #83cf8f;
-  border-radius: 50%;
+  left: 10px;
+  bottom: -9px;
+  width: 6px;
+  height: 9px;
+  background: #2a3d63;
 }
 
-.friends-home-miniroom-furniture.is-plant {
-  width: 18px;
-  height: 26px;
-  right: 78px;
-  bottom: 24px;
-  border: 2px solid #7f6d56;
-  background: #c6b192;
-}
-
-.friends-home-miniroom-furniture.is-plant::before,
-.friends-home-miniroom-furniture.is-plant::after {
-  content: '';
+.friends-home-friendsroom-avatars {
   position: absolute;
-  width: 10px;
-  height: 12px;
-  border-radius: 50%;
-  background: #5db674;
-}
-
-.friends-home-miniroom-furniture.is-plant::before {
-  top: -10px;
-  left: -5px;
-}
-
-.friends-home-miniroom-furniture.is-plant::after {
-  top: -14px;
-  left: 6px;
-}
-
-.friends-home-miniroom-avatars {
-  position: absolute;
-  left: 0;
-  right: 0;
+  left: 112px;
+  right: 84px;
   bottom: 16px;
-  height: 78px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 8px;
+  min-height: 92px;
 }
 
-.friends-home-miniroom-avatar {
-  position: absolute;
-  width: 20px;
-  height: 26px;
-  border: 2px solid #273e87;
-  background: #4d7bd9;
-  border-radius: 4px;
-  animation: avatar-bob 2.4s ease-in-out infinite;
+.friends-home-friendsroom-avatar {
+  position: relative;
+  width: 22px;
+  height: 30px;
+  border: 2px solid #24356f;
+  background: var(--avatar-color, #5a79d6);
+  animation: avatar-bob 2.1s steps(2, end) infinite;
 }
 
-.friends-home-miniroom-avatar::before {
+.friends-home-friendsroom-avatar::before {
   content: '';
   position: absolute;
   top: -12px;
-  left: 2px;
+  left: 3px;
   width: 12px;
   height: 12px;
-  border: 2px solid #273e87;
-  border-radius: 50%;
-  background: #ffd2bf;
+  border: 2px solid #24356f;
+  background: #ffd1b9;
 }
 
-.friends-home-miniroom-avatar::after {
+.friends-home-friendsroom-avatar::after {
   content: '';
   position: absolute;
-  left: 3px;
-  bottom: -5px;
+  left: 4px;
+  bottom: -6px;
   width: 10px;
-  height: 3px;
-  background: #243671;
+  height: 4px;
+  background: #1f2f60;
 }
 
-.friends-home-miniroom-avatar.is-host {
-  left: 22%;
-  background: #ff9cb0;
-  animation-delay: 0.15s;
+.friends-home-friendsroom-avatar-label {
+  position: absolute;
+  top: 7px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 8px;
+  color: #f4f9ff;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.friends-home-miniroom-avatar.is-seat-1 {
-  left: 40%;
-  animation-delay: 0.35s;
-}
-
-.friends-home-miniroom-avatar.is-seat-2 {
-  left: 52%;
-  animation-delay: 0.55s;
-}
-
-.friends-home-miniroom-avatar.is-seat-3 {
-  left: 64%;
-  animation-delay: 0.75s;
-}
-
-.friends-home-miniroom-avatar.is-seat-4 {
-  left: 76%;
-  animation-delay: 0.95s;
-}
-
-.friends-home-miniroom-status {
+.friends-home-friendsroom-status {
   margin: 10px 0 0;
   font-size: 12px;
   color: var(--hitel-text);
 }
 
-.friends-home-miniroom.is-quiet .friends-home-miniroom-avatar:not(.is-host) {
-  opacity: 0.3;
+.friends-home-friendsroom.is-quiet .friends-home-friendsroom-scene {
+  filter: saturate(0.85);
 }
 
-.friends-home-miniroom.is-busy .friends-home-miniroom-scene {
-  box-shadow: 0 0 0 1px #88a3ef inset;
+.friends-home-friendsroom.is-busy .friends-home-friendsroom-scene {
+  box-shadow: inset 0 0 0 2px #8aa0e2, 0 0 0 1px #8db2ff;
 }
 
 @keyframes avatar-bob {
@@ -284,33 +267,19 @@
 }
 
 @media (max-width: 640px) {
-  .friends-home-miniroom-scene {
-    height: 190px;
+  .friends-home-friendsroom-scene {
+    height: 220px;
   }
 
-  .friends-home-miniroom-avatar.is-host {
-    left: 18%;
-  }
-
-  .friends-home-miniroom-avatar.is-seat-1 {
-    left: 34%;
-  }
-
-  .friends-home-miniroom-avatar.is-seat-2 {
-    left: 48%;
-  }
-
-  .friends-home-miniroom-avatar.is-seat-3 {
-    left: 62%;
-  }
-
-  .friends-home-miniroom-avatar.is-seat-4 {
-    left: 76%;
+  .friends-home-friendsroom-avatars {
+    left: 92px;
+    right: 64px;
+    gap: 8px 6px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .friends-home-miniroom-avatar {
+  .friends-home-friendsroom-avatar {
     animation: none;
   }
 }

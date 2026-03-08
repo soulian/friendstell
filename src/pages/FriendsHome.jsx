@@ -66,19 +66,11 @@ export default function FriendsHome() {
   const newsCount = getPosts(homeId, 'news').length
   const tempCount = getPosts(homeId, 'temp').length
   const uniqueAuthors = getHomeUniqueAuthors(homeId)
-  const uniqueWriterCount = uniqueAuthors.length
-  const friendAvatarCount = Math.min(uniqueWriterCount, 4)
-  const miniroomMood = uniqueWriterCount === 0 ? 'quiet' : uniqueWriterCount >= 4 ? 'busy' : 'warm'
-  const miniroomSummary = uniqueWriterCount === 0
-    ? '아직 방문한 친구가 없어요. 첫 글을 남겨 친구를 초대해 보세요.'
-    : `오늘 방문한 친구 ${uniqueWriterCount}명과 함께 미니룸이 더 활기차졌어요.`
-  const avatarSeatClasses = [
-    'is-host',
-    'is-seat-1',
-    'is-seat-2',
-    'is-seat-3',
-    'is-seat-4',
-  ]
+  const participantCount = uniqueAuthors.length
+  const friendsRoomMood = participantCount === 0 ? 'quiet' : participantCount >= 8 ? 'busy' : 'warm'
+  const friendsRoomSummary = participantCount === 0
+    ? '아직 방문한 친구가 없어요. 첫 글이나 댓글을 남겨 프렌즈룸을 채워보세요.'
+    : `현재 활동 중인 친구 ${participantCount}명의 미니미가 프렌즈룸에서 IT 이야기를 나누고 있어요.`
 
   return (
     <div className="friends-home hitel-card">
@@ -117,28 +109,34 @@ export default function FriendsHome() {
         </ul>
       </div>
 
-      <section className={`friends-home-miniroom is-${miniroomMood}`} aria-label="싸이월드 감성 미니룸 그래픽">
-        <h3 className="hitel-title">[ 미니룸 ]</h3>
-        <div className="friends-home-miniroom-scene" aria-hidden="true">
-          <div className="friends-home-miniroom-wall">
+      <section className={`friends-home-friendsroom is-${friendsRoomMood}`} aria-label="싸이월드 감성 픽셀 프렌즈룸">
+        <h3 className="hitel-title">[ 프렌즈룸 ]</h3>
+        <div className="friends-home-friendsroom-scene" aria-hidden="true">
+          <div className="friends-home-friendsroom-wall">
             <span className="friends-home-wall-frame is-frame-1" />
             <span className="friends-home-wall-frame is-frame-2" />
             <span className="friends-home-wall-window" />
           </div>
-          <div className="friends-home-miniroom-floor" />
-          <span className="friends-home-miniroom-furniture is-sofa" />
-          <span className="friends-home-miniroom-furniture is-table" />
-          <span className="friends-home-miniroom-furniture is-plant" />
-          <div className="friends-home-miniroom-avatars">
-            {Array.from({ length: friendAvatarCount + 1 }).map((_, index) => (
+          <div className="friends-home-friendsroom-floor" />
+          <span className="friends-home-friendsroom-furniture is-sofa" />
+          <span className="friends-home-friendsroom-furniture is-table" />
+          <span className="friends-home-friendsroom-furniture is-monitor" />
+          <div className="friends-home-friendsroom-avatars">
+            {uniqueAuthors.map((author, index) => (
               <span
-                key={`mini-avatar-${index}`}
-                className={`friends-home-miniroom-avatar ${avatarSeatClasses[index]}`}
-              />
+                key={`mini-avatar-${author}-${index}`}
+                className="friends-home-friendsroom-avatar"
+                style={{ '--avatar-color': `var(--avatar-color-${(index % 6) + 1})` }}
+                title={author}
+              >
+                <span className="friends-home-friendsroom-avatar-label">
+                  {author.slice(0, 1)}
+                </span>
+              </span>
             ))}
           </div>
         </div>
-        <p className="friends-home-miniroom-status">{miniroomSummary}</p>
+        <p className="friends-home-friendsroom-status">{friendsRoomSummary}</p>
       </section>
     </div>
   )

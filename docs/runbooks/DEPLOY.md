@@ -58,7 +58,9 @@ npm run preview
 1. 배포 전 상태로 되돌릴 커밋 확인: `git log`
 2. 되돌리기: `git revert <commit>` 또는 `git reset --hard <commit>` 후 force push (팀 정책에 따름)
 3. `main`에 푸시하면 해당 커밋 기준으로 재배포됨
-4. **주의**: `src/data/mock.js` 스키마·키 변경 시 기존 사용자 localStorage와 불일치할 수 있음. 필요 시 마이그레이션 또는 안내 문구 고려.
+4. **주의**: `src/data/mock.js` 스키마·키 변경 시 기존 사용자 localStorage와 불일치할 수 있음.  
+   - 현재 버전은 `friends_tell_data`에 `meta.aiItMeetupLastPlayDate`를 추가하고, `friends_tell_homes`에 `home_ai_it_meetup` 시드 홈을 자동 주입한다.
+   - 롤백 시에는 기존 저장소 데이터를 유지한 채 UI만 이전 버전으로 돌아갈 수 있으므로, 시드 데이터 노출 정책(자동 생성/자동 대화)을 함께 확인한다.
 5. Vercel 라우팅 이슈가 생기면 `vercel.json`의 rewrite 변경 커밋을 우선 롤백한다.
 
 ## 환경·시크릿
