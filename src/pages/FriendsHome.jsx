@@ -159,7 +159,7 @@ export default function FriendsHome() {
       ]
         .flatMap(({ boardId, list }) => (list || []).map((post) => ({ ...post, boardId })))
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-        .slice(0, 8)
+        .slice(0, 5)
     )
     setLoading(false)
   }, [homeId])
