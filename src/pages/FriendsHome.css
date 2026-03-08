@@ -41,9 +41,17 @@
   min-height: 140px;
 }
 
+.friends-home-recent-heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hitel-text);
+}
+
 .friends-home-recent-list {
   margin: 6px 0 0;
-  padding-left: 18px;
+  padding: 0;
+  list-style: none;
 }
 
 .friends-home-recent-item {
@@ -70,6 +78,11 @@
 
 .friends-home-recent-title {
   color: var(--hitel-text-bright);
+}
+
+.friends-home-recent-time {
+  color: var(--hitel-text);
+  font-size: 11px;
 }
 
 .friends-home-miniroom {
