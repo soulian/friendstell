@@ -59,6 +59,12 @@
   padding: 24px;
 }
 
+.board-list-comment-count {
+  color: var(--hitel-text);
+  font-size: 0.95em;
+  margin-left: 2px;
+}
+
 .hitel-table a {
   color: var(--hitel-link);
   text-decoration: none;

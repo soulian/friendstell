@@ -3,12 +3,14 @@ import { Link, useParams } from 'react-router-dom'
 import {
   getPosts,
   getHome,
+  getComments,
 } from '../data/mock'
 import './BoardList.css'
 
 export default function BoardList() {
   const { homeId, boardId } = useParams()
   const [posts, setPosts] = useState([])
+  const [commentCounts, setCommentCounts] = useState({})
   const [boardName, setBoardName] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -29,6 +31,15 @@ export default function BoardList() {
             : boardId)
     setPosts(nextPosts)
     setBoardName(nextBoardName)
+
+    const counts = {}
+    await Promise.all(
+      nextPosts.map(async (post) => {
+        const comments = await getComments(homeId, boardId, post.id)
+        counts[post.id] = comments.length
+      })
+    )
+    setCommentCounts(counts)
     setLoading(false)
   }, [homeId, boardId])
 
@@ -74,6 +85,9 @@ export default function BoardList() {
                 <td>
                   <Link to={`/home/${homeId}/board/${boardId}/post/${post.id}`}>
                     {post.title}
+                    {commentCounts[post.id] > 0 && (
+                      <span className="board-list-comment-count"> ({commentCounts[post.id]})</span>
+                    )}
                   </Link>
                 </td>
                 <td>{post.views || 0}</td>
