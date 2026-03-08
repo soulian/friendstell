@@ -16,6 +16,14 @@
       "destination": "/api/og-meta?path=/home/:homeId/:rest*&homeId=:homeId"
     },
     {
+      "source": "/",
+      "destination": "/api/og-meta?path=/"
+    },
+    {
+      "source": "/create",
+      "destination": "/api/og-meta?path=/create"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

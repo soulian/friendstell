@@ -48,11 +48,15 @@ export default async function handler(req, res) {
   const home = getHomeById(snapshot, homeId)
   const baseMeta = buildMetaByHome(home)
   const url = origin ? `${origin}${pathname}` : pathname
-  const image = origin && homeId
-    ? `${origin}/api/og-image?homeId=${encodeURIComponent(homeId)}`
+  const isCreatePage = pathname === '/create'
+  const imagePath = homeId
+    ? `/api/og-image?homeId=${encodeURIComponent(homeId)}`
+    : '/api/og-image?view=main'
+  const image = isCreatePage
+    ? ''
     : origin
-      ? `${origin}/api/og-image`
-      : '/api/og-image'
+      ? `${origin}${imagePath}`
+      : imagePath
 
   const template = await getIndexTemplate(origin)
   const html = injectMetaTags(template, {

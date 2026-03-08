@@ -104,7 +104,7 @@ export function buildMetaByHome(home) {
     return { ...DEFAULT_META }
   }
   return {
-    title: `${home.title} 프렌즈홈 | 친구들과 함께 쓰는 게시판에 지금 참여해요`,
+    title: `${home.title}의 프렌즈홈에 방문해보세요`,
     description: `${home.title} 프렌즈홈에 초대합니다. 링크를 열면 공지, 자유글, 소식, 임시 게시판을 바로 함께 쓸 수 있어요. 지금 접속해 글과 댓글을 남기고 미니룸 분위기도 같이 키워보세요.`,
   }
 }

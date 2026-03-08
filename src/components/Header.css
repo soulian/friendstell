@@ -8,9 +8,28 @@
 .retro-header-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.header-brand-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--hitel-highlight-yellow);
+  background: #3a2d00;
+  color: var(--hitel-highlight-yellow);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .header-sync-banner {
@@ -38,6 +57,8 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  flex: 1;
+  min-width: 180px;
 }
 
 .header-home-title {
@@ -50,10 +71,14 @@
 }
 
 .header-title-edit-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--hitel-font);
-  font-size: 12px;
+  font-size: 15px;
   line-height: 1;
-  padding: 5px 10px;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--hitel-border);
   background: var(--hitel-input-bg);
   color: var(--hitel-text-bright);
@@ -121,6 +146,7 @@
 
 .apt-dropdown {
   position: relative;
+  margin-left: auto;
 }
 
 .apt-dropdown-trigger {
@@ -155,7 +181,7 @@
 .apt-dropdown-menu {
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   margin: 4px 0 0;
   padding: 4px 0;
   list-style: none;
@@ -191,4 +217,16 @@
 
 .apt-dropdown-create .create-link {
   color: var(--hitel-highlight-yellow);
+}
+
+@media (max-width: 860px) {
+  .header-title-row {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .apt-dropdown {
+    margin-left: 0;
+    order: 2;
+  }
 }

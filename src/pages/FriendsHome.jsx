@@ -4,6 +4,7 @@ import {
   getHome,
   getPosts,
   getHomeUniqueAuthors,
+  getBoardDisplayName,
 } from '../data/mock'
 import './FriendsHome.css'
 
@@ -28,19 +29,67 @@ function hashString(input) {
   return Math.abs(hash)
 }
 
+function getFallbackWeatherTheme() {
+  const hour = new Date().getHours()
+  if (hour < 6 || hour >= 20) {
+    return {
+      theme: 'night-clear',
+      label: '현재 시각 기준 밤하늘 테마를 적용했어요.',
+    }
+  }
+  if (hour < 12) {
+    return {
+      theme: 'day-clear',
+      label: '현재 시각 기준 맑은 아침 하늘 테마를 적용했어요.',
+    }
+  }
+  if (hour < 17) {
+    return {
+      theme: 'day-cloudy',
+      label: '현재 시각 기준 구름 낀 낮 하늘 테마를 적용했어요.',
+    }
+  }
+  return {
+    theme: 'day-rain',
+    label: '현재 시각 기준 비 오는 저녁 하늘 테마를 적용했어요.',
+  }
+}
+
+function getThemeByWeatherCode(weatherCode, isDaytime) {
+  const code = Number(weatherCode)
+  const snowCodes = new Set([71, 73, 75, 77, 85, 86])
+  const rainCodes = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99])
+  const cloudyCodes = new Set([2, 3, 45, 48])
+
+  if (!isDaytime) {
+    if (snowCodes.has(code)) return { theme: 'night-snow', label: '현재 날씨: 눈 내리는 밤' }
+    if (rainCodes.has(code)) return { theme: 'night-rain', label: '현재 날씨: 비 오는 밤' }
+    if (cloudyCodes.has(code)) return { theme: 'night-cloudy', label: '현재 날씨: 구름 낀 밤' }
+    return { theme: 'night-clear', label: '현재 날씨: 맑은 밤' }
+  }
+
+  if (snowCodes.has(code)) return { theme: 'day-snow', label: '현재 날씨: 눈' }
+  if (rainCodes.has(code)) return { theme: 'day-rain', label: '현재 날씨: 비' }
+  if (cloudyCodes.has(code)) return { theme: 'day-cloudy', label: '현재 날씨: 흐림' }
+  return { theme: 'day-clear', label: '현재 날씨: 맑음' }
+}
+
 export default function FriendsHome() {
   const { homeId } = useParams()
   const navigate = useNavigate()
   const menuRef = useRef(null)
   const [home, setHome] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [recentPosts, setRecentPosts] = useState([])
+  const [uniqueAuthors, setUniqueAuthors] = useState([])
+  const [weatherTheme, setWeatherTheme] = useState(getFallbackWeatherTheme().theme)
+  const [weatherLabel, setWeatherLabel] = useState(getFallbackWeatherTheme().label)
   const [counts, setCounts] = useState({
     notice: 0,
     free: 0,
     news: 0,
     temp: 0,
   })
-  const [uniqueWriterCount, setUniqueWriterCount] = useState(0)
 
   const loadHomeData = useCallback(async () => {
     setLoading(true)
@@ -60,7 +109,18 @@ export default function FriendsHome() {
       news: newsPosts.length,
       temp: tempPosts.length,
     })
-    setUniqueWriterCount(uniqueAuthors.length)
+    setUniqueAuthors(uniqueAuthors)
+    setRecentPosts(
+      [
+        { boardId: 'notice', list: noticePosts },
+        { boardId: 'free', list: freePosts },
+        { boardId: 'news', list: newsPosts },
+        { boardId: 'temp', list: tempPosts },
+      ]
+        .flatMap(({ boardId, list }) => (list || []).map((post) => ({ ...post, boardId })))
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        .slice(0, 8)
+    )
     setLoading(false)
   }, [homeId])
 
@@ -101,6 +161,41 @@ export default function FriendsHome() {
     return () => window.removeEventListener('friends-data-updated', handleDataUpdated)
   }, [loadHomeData])
 
+  useEffect(() => {
+    let cancelled = false
+
+    const applyFallback = () => {
+      const fallback = getFallbackWeatherTheme()
+      if (!cancelled) {
+        setWeatherTheme(fallback.theme)
+        setWeatherLabel(fallback.label)
+      }
+    }
+
+    const loadWeather = async () => {
+      try {
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current=weather_code,is_day&timezone=Asia%2FSeoul')
+        if (!response.ok) throw new Error('weather-fetch-failed')
+        const json = await response.json()
+        const current = json?.current
+        const nextTheme = getThemeByWeatherCode(current?.weather_code, Number(current?.is_day) === 1)
+        if (!cancelled) {
+          setWeatherTheme(nextTheme.theme)
+          setWeatherLabel(`${nextTheme.label} (서울 기준)`)
+        }
+      } catch (_) {
+        applyFallback()
+      }
+    }
+
+    loadWeather()
+    const timer = setInterval(loadWeather, 20 * 60 * 1000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [homeId])
+
   const handleMenuKeyDown = (e) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return
     const container = menuRef.current
@@ -132,6 +227,7 @@ export default function FriendsHome() {
     return <Navigate to="/create" replace />
   }
 
+  const uniqueWriterCount = uniqueAuthors.length
   const friendAvatarCount = Math.min(uniqueWriterCount, 4)
   const miniroomMood = uniqueWriterCount === 0 ? 'quiet' : uniqueWriterCount >= 4 ? 'busy' : 'warm'
   const miniroomSummary = uniqueWriterCount === 0
@@ -149,47 +245,69 @@ export default function FriendsHome() {
     const idx = hashString(seed) % AVATAR_VARIANTS.length
     return AVATAR_VARIANTS[idx]
   }
+  const avatarNames = ['홈지기', ...uniqueAuthors.slice(0, 4)]
+  const avatarsToRender = avatarNames.slice(0, friendAvatarCount + 1)
 
   return (
     <div className="friends-home hitel-card">
-      <div ref={menuRef} onKeyDown={handleMenuKeyDown} className="friends-home-menu-wrap">
-        <h2 className="hitel-section-basic">[ 기본메뉴 ]</h2>
-        <ul className="hitel-menu-list" role="menu" aria-label="기본 메뉴">
-          <li role="none">
-            <Link to={`/home/${homeId}/board/notice`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              1. 공지사항({counts.notice})
-            </Link>
-          </li>
-          <li role="none">
-            <Link to={`/home/${homeId}/about`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              2. 프렌즈텔?
-            </Link>
-          </li>
-        </ul>
+      <div className="friends-home-board-grid">
+        <div ref={menuRef} onKeyDown={handleMenuKeyDown} className="friends-home-menu-wrap">
+          <h2 className="hitel-section-basic">[ 기본메뉴 ]</h2>
+          <ul className="hitel-menu-list" role="menu" aria-label="기본 메뉴">
+            <li role="none">
+              <Link to={`/home/${homeId}/board/notice`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
+                1. 공지사항({counts.notice})
+              </Link>
+            </li>
+            <li role="none">
+              <Link to={`/home/${homeId}/about`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
+                2. 프렌즈텔?
+              </Link>
+            </li>
+          </ul>
 
-        <h2 className="hitel-section-community">[ 커뮤니티 ]</h2>
-        <ul className="hitel-menu-list" role="menu" aria-label="커뮤니티 메뉴">
-          <li role="none">
-            <Link to={`/home/${homeId}/board/free`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              3. 자유게시판({counts.free})
-            </Link>
-          </li>
-          <li role="none">
-            <Link to={`/home/${homeId}/board/news`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              4. {home.title} 소식({counts.news})
-            </Link>
-          </li>
-          <li role="none">
-            <Link to={`/home/${homeId}/board/temp`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
-              5. 임시 게시판({counts.temp})
-            </Link>
-          </li>
-        </ul>
+          <h2 className="hitel-section-community">[ 커뮤니티 ]</h2>
+          <ul className="hitel-menu-list" role="menu" aria-label="커뮤니티 메뉴">
+            <li role="none">
+              <Link to={`/home/${homeId}/board/free`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
+                3. 자유게시판({counts.free})
+              </Link>
+            </li>
+            <li role="none">
+              <Link to={`/home/${homeId}/board/news`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
+                4. {home.title} 소식({counts.news})
+              </Link>
+            </li>
+            <li role="none">
+              <Link to={`/home/${homeId}/board/temp`} className="hitel-menu-link" role="menuitem" tabIndex={0}>
+                5. 임시 게시판({counts.temp})
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <section className="friends-home-recent-wrap" aria-label="최근 글 목록">
+          <h2 className="hitel-section-community">[ 최근 글 ]</h2>
+          {recentPosts.length === 0 ? (
+            <p className="hitel-hint">아직 게시글이 없습니다. 첫 글을 작성해 보세요.</p>
+          ) : (
+            <ol className="friends-home-recent-list">
+              {recentPosts.map((post) => (
+                <li key={`${post.boardId}-${post.id}`} className="friends-home-recent-item">
+                  <Link to={`/home/${homeId}/board/${post.boardId}/post/${post.id}`} className="friends-home-recent-link">
+                    <span className="friends-home-recent-board">[{getBoardDisplayName(homeId, post.boardId)}]</span>
+                    <span className="friends-home-recent-title">{post.title}</span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
       </div>
 
       <section className={`friends-home-miniroom is-${miniroomMood}`} aria-label="캠핑장 감성 미니룸 그래픽">
-        <h3 className="hitel-title">[ 미니룸 ]</h3>
-        <div className="friends-home-miniroom-scene friends-home-camp-scene" aria-hidden="true">
+        <h3 className="hitel-title">[ {home.title} 프렌즈홈 ]</h3>
+        <div className={`friends-home-miniroom-scene friends-home-camp-scene is-weather-${weatherTheme}`} aria-hidden="true">
           <div className="friends-home-camp-sky">
             <span className="friends-home-camp-star is-s1" />
             <span className="friends-home-camp-star is-s2" />
@@ -197,6 +315,7 @@ export default function FriendsHome() {
             <span className="friends-home-camp-star is-s4" />
             <span className="friends-home-camp-star is-s5" />
             <span className="friends-home-camp-moon" />
+            <span className="friends-home-camp-sun" />
           </div>
           <span className="friends-home-camp-mountain is-back" />
           <span className="friends-home-camp-mountain is-front" />
@@ -207,15 +326,19 @@ export default function FriendsHome() {
           <span className="friends-home-camp-tent is-sub" />
           <span className="friends-home-camp-fire" />
           <div className="friends-home-miniroom-avatars">
-            {Array.from({ length: friendAvatarCount + 1 }).map((_, index) => (
-              <span
+            {avatarsToRender.map((avatarName, index) => (
+              <div
                 key={`mini-avatar-${index}`}
-                className={`friends-home-miniroom-avatar ${avatarSeatClasses[index]} ${getAvatarVariantClass(index)}`}
-              />
+                className={`friends-home-miniroom-avatar-wrap ${avatarSeatClasses[index]}`}
+              >
+                <span className={`friends-home-miniroom-avatar ${getAvatarVariantClass(index)}`} />
+                <span className="friends-home-miniroom-avatar-name">{avatarName}</span>
+              </div>
             ))}
           </div>
         </div>
         <p className="friends-home-miniroom-status">{miniroomSummary}</p>
+        <p className="friends-home-miniroom-weather">{weatherLabel}</p>
       </section>
     </div>
   )
