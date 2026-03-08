@@ -31,9 +31,25 @@ function shouldAttemptRemote() {
   return now() - lastRemoteAttemptAt >= REMOTE_RETRY_INTERVAL_MS
 }
 
+function normalizeHomeTitle(title) {
+  const trimmed = (title || '').trim()
+  if (!trimmed) return trimmed
+  const simplified = trimmed.replace(/\s+/g, ' ').toLowerCase()
+  if (simplified === 'ai it 모임') {
+    return 'IT 모임'
+  }
+  return trimmed
+}
+
 function normalizeSnapshot(snapshot) {
+  const homes = Array.isArray(snapshot?.homes)
+    ? snapshot.homes.map((home) => ({
+      ...home,
+      title: normalizeHomeTitle(home?.title),
+    }))
+    : []
   return {
-    homes: Array.isArray(snapshot?.homes) ? snapshot.homes : [],
+    homes,
     posts: snapshot?.posts && typeof snapshot.posts === 'object' ? snapshot.posts : {},
     comments: snapshot?.comments && typeof snapshot.comments === 'object' ? snapshot.comments : {},
   }
@@ -202,7 +218,7 @@ export async function getHome(homeId) {
 
 /** 새 프렌즈홈 생성. { title } 필수 */
 export async function createHome({ title }) {
-  const nextTitle = (title || '').trim() || '이름 없는 프렌즈홈'
+  const nextTitle = normalizeHomeTitle(title) || '이름 없는 프렌즈홈'
   const remote = await runRemoteMutation('createHome', { title: nextTitle })
   if (remote) return remote
 
@@ -218,7 +234,7 @@ export async function createHome({ title }) {
 
 /** 프렌즈홈 제목 등 수정 */
 export async function updateHome(homeId, { title }) {
-  const nextTitle = title === undefined ? undefined : (title || '').trim()
+  const nextTitle = title === undefined ? undefined : normalizeHomeTitle(title)
   const remote = await runRemoteMutation('updateHome', { homeId, title: nextTitle })
   if (remote) return remote
 

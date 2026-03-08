@@ -7,6 +7,27 @@ import {
 } from '../data/mock'
 import './FriendsHome.css'
 
+const AVATAR_VARIANTS = [
+  'is-variant-1',
+  'is-variant-2',
+  'is-variant-3',
+  'is-variant-4',
+  'is-variant-5',
+  'is-variant-6',
+  'is-variant-7',
+  'is-variant-8',
+  'is-variant-9',
+  'is-variant-10',
+]
+
+function hashString(input) {
+  let hash = 0
+  for (let i = 0; i < input.length; i += 1) {
+    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
 export default function FriendsHome() {
   const { homeId } = useParams()
   const navigate = useNavigate()
@@ -123,6 +144,11 @@ export default function FriendsHome() {
     'is-seat-3',
     'is-seat-4',
   ]
+  const getAvatarVariantClass = (seatIndex) => {
+    const seed = `${home.id}:${uniqueWriterCount}:${seatIndex}`
+    const idx = hashString(seed) % AVATAR_VARIANTS.length
+    return AVATAR_VARIANTS[idx]
+  }
 
   return (
     <div className="friends-home hitel-card">
@@ -161,23 +187,30 @@ export default function FriendsHome() {
         </ul>
       </div>
 
-      <section className={`friends-home-miniroom is-${miniroomMood}`} aria-label="싸이월드 감성 미니룸 그래픽">
+      <section className={`friends-home-miniroom is-${miniroomMood}`} aria-label="캠핑장 감성 미니룸 그래픽">
         <h3 className="hitel-title">[ 미니룸 ]</h3>
-        <div className="friends-home-miniroom-scene" aria-hidden="true">
-          <div className="friends-home-miniroom-wall">
-            <span className="friends-home-wall-frame is-frame-1" />
-            <span className="friends-home-wall-frame is-frame-2" />
-            <span className="friends-home-wall-window" />
+        <div className="friends-home-miniroom-scene friends-home-camp-scene" aria-hidden="true">
+          <div className="friends-home-camp-sky">
+            <span className="friends-home-camp-star is-s1" />
+            <span className="friends-home-camp-star is-s2" />
+            <span className="friends-home-camp-star is-s3" />
+            <span className="friends-home-camp-star is-s4" />
+            <span className="friends-home-camp-star is-s5" />
+            <span className="friends-home-camp-moon" />
           </div>
-          <div className="friends-home-miniroom-floor" />
-          <span className="friends-home-miniroom-furniture is-sofa" />
-          <span className="friends-home-miniroom-furniture is-table" />
-          <span className="friends-home-miniroom-furniture is-plant" />
+          <span className="friends-home-camp-mountain is-back" />
+          <span className="friends-home-camp-mountain is-front" />
+          <div className="friends-home-camp-ground" />
+          <span className="friends-home-camp-tree is-left" />
+          <span className="friends-home-camp-tree is-right" />
+          <span className="friends-home-camp-tent is-main" />
+          <span className="friends-home-camp-tent is-sub" />
+          <span className="friends-home-camp-fire" />
           <div className="friends-home-miniroom-avatars">
             {Array.from({ length: friendAvatarCount + 1 }).map((_, index) => (
               <span
                 key={`mini-avatar-${index}`}
-                className={`friends-home-miniroom-avatar ${avatarSeatClasses[index]}`}
+                className={`friends-home-miniroom-avatar ${avatarSeatClasses[index]} ${getAvatarVariantClass(index)}`}
               />
             ))}
           </div>
