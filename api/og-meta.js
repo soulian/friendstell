@@ -24,6 +24,14 @@ function injectMetaTags(indexHtml, meta) {
   html = upsertTag(html, /<meta\s+property=["']og:description["'][^>]*>/i, `<meta property="og:description" content="${escapeHtml(meta.description)}" />`)
   html = upsertTag(html, /<meta\s+property=["']og:url["'][^>]*>/i, `<meta property="og:url" content="${escapeHtml(meta.url)}" />`)
   html = upsertTag(html, /<meta\s+property=["']og:image["'][^>]*>/i, `<meta property="og:image" content="${escapeHtml(meta.image)}" />`)
+  html = upsertTag(html, /<meta\s+property=["']og:image:type["'][^>]*>/i, '<meta property="og:image:type" content="image/png" />')
+  html = upsertTag(html, /<meta\s+property=["']og:image:width["'][^>]*>/i, '<meta property="og:image:width" content="1200" />')
+  html = upsertTag(html, /<meta\s+property=["']og:image:height["'][^>]*>/i, '<meta property="og:image:height" content="630" />')
+  html = upsertTag(html, /<meta\s+property=["']og:image:alt["'][^>]*>/i, `<meta property="og:image:alt" content="${escapeHtml(meta.imageAlt)}" />`)
+  html = upsertTag(html, /<meta\s+name=["']twitter:card["'][^>]*>/i, '<meta name="twitter:card" content="summary_large_image" />')
+  html = upsertTag(html, /<meta\s+name=["']twitter:title["'][^>]*>/i, `<meta name="twitter:title" content="${escapeHtml(meta.title)}" />`)
+  html = upsertTag(html, /<meta\s+name=["']twitter:description["'][^>]*>/i, `<meta name="twitter:description" content="${escapeHtml(meta.description)}" />`)
+  html = upsertTag(html, /<meta\s+name=["']twitter:image["'][^>]*>/i, `<meta name="twitter:image" content="${escapeHtml(meta.image)}" />`)
   html = upsertTag(html, /<meta\s+property=["']og:locale["'][^>]*>/i, '<meta property="og:locale" content="ko_KR" />')
   return html
 }
@@ -51,6 +59,9 @@ export default async function handler(req, res) {
     ...baseMeta,
     url,
     image,
+    imageAlt: home
+      ? `${home.title} 프렌즈홈 대표 이미지 - 친구들과 함께 글을 남겨 미니룸 분위기를 키워보세요`
+      : '프렌즈텔 대표 이미지 - 링크로 친구를 초대해 함께 게시판을 써보세요',
   })
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8')

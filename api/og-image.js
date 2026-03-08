@@ -7,6 +7,7 @@ import {
   getRequestOrigin,
   getUniqueAuthorCount,
 } from './_og-shared.js'
+import { Resvg } from '@resvg/resvg-js'
 
 function getMood(uniqueAuthorCount) {
   if (uniqueAuthorCount === 0) return 'quiet'
@@ -36,12 +37,18 @@ function buildAvatarSvg(totalAvatars) {
     .join('\n')
 }
 
+function clampText(input, maxLength) {
+  const text = String(input || '').trim()
+  if (text.length <= maxLength) return text
+  return `${text.slice(0, Math.max(0, maxLength - 1))}…`
+}
+
 function buildSvg({ title, subtitle, uniqueAuthorCount }) {
   const mood = getMood(uniqueAuthorCount)
   const moodColor = getMoodColor(mood)
   const totalAvatars = Math.min(uniqueAuthorCount, 4) + 1
-  const safeTitle = escapeXml(title)
-  const safeSubtitle = escapeXml(subtitle)
+  const safeTitle = escapeXml(clampText(title, 30))
+  const safeSubtitle = escapeXml(clampText(subtitle, 48))
   const avatarSvg = buildAvatarSvg(totalAvatars)
 
   return `<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${safeTitle}">
@@ -68,18 +75,26 @@ function buildSvg({ title, subtitle, uniqueAuthorCount }) {
   <rect x="575" y="460" width="50" height="20" rx="8" fill="#fb923c" />
   <circle cx="600" cy="446" r="15" fill="#f97316" />
   <circle cx="600" cy="436" r="10" fill="#fde68a" />
-  <rect x="70" y="76" width="620" height="96" rx="20" fill="#0f172acc" />
-  <text x="100" y="132" font-size="56" font-family="'Malgun Gothic', 'Noto Sans KR', sans-serif" fill="#f8fafc" font-weight="700">
+  <rect x="70" y="40" width="520" height="40" rx="12" fill="#1d4ed8" />
+  <text x="94" y="67" font-size="22" font-family="'Malgun Gothic', 'Noto Sans KR', sans-serif" fill="#e2e8f0" font-weight="700">
+    FRIENDSTELL PREVIEW
+  </text>
+  <rect x="70" y="94" width="1060" height="104" rx="20" fill="#0f172acc" />
+  <text x="100" y="156" font-size="52" font-family="'Malgun Gothic', 'Noto Sans KR', sans-serif" fill="#f8fafc" font-weight="700">
     ${safeTitle}
   </text>
-  <rect x="70" y="190" width="760" height="58" rx="14" fill="#0f172acc" />
-  <text x="100" y="230" font-size="30" font-family="'Malgun Gothic', 'Noto Sans KR', sans-serif" fill="#dbeafe">
+  <rect x="70" y="214" width="930" height="56" rx="14" fill="#0f172acc" />
+  <text x="100" y="252" font-size="28" font-family="'Malgun Gothic', 'Noto Sans KR', sans-serif" fill="#dbeafe">
     ${safeSubtitle}
   </text>
-  <rect x="70" y="270" width="320" height="66" rx="14" fill="#0f172acc" />
+  <rect x="70" y="286" width="320" height="66" rx="14" fill="#0f172acc" />
   <circle cx="114" cy="303" r="14" fill="${moodColor}" />
   <text x="142" y="313" font-size="28" font-family="'Malgun Gothic', 'Noto Sans KR', sans-serif" fill="#f8fafc">
     미니룸 분위기: ${mood}
+  </text>
+  <rect x="70" y="364" width="430" height="74" rx="14" fill="#f59e0b" />
+  <text x="96" y="410" font-size="30" font-family="'Malgun Gothic', 'Noto Sans KR', sans-serif" fill="#111827" font-weight="700">
+    지금 링크 열고 같이 글쓰기 ->
   </text>
   ${avatarSvg}
 </svg>`
@@ -99,7 +114,7 @@ export default async function handler(req, res) {
   const baseMeta = buildMetaByHome(home)
   const subtitle = home
     ? `오늘 방문 친구 ${uniqueAuthorCount}명과 함께하는 캠핑장 미니룸`
-    : '친구와 함께 쓰는 게시판을 만들고 링크를 공유해 보세요.'
+    : '프렌즈홈 링크를 열고 지금 바로 친구들과 대화를 시작해 보세요.'
 
   const svg = buildSvg({
     title: baseMeta.title,
@@ -107,7 +122,8 @@ export default async function handler(req, res) {
     uniqueAuthorCount,
   })
 
-  res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
+  const png = new Resvg(svg).render().asPng()
+  res.setHeader('Content-Type', 'image/png')
   res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400')
-  return res.status(200).send(svg)
+  return res.status(200).send(Buffer.from(png))
 }
