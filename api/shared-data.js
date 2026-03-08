@@ -1,6 +1,11 @@
 import { Redis } from '@upstash/redis'
 
-const DB_KEY = 'friends_tell:shared_db:v1'
+const PRIMARY_DB_KEY = 'friends_tell:shared_db:v1'
+const LEGACY_DB_KEYS = [
+  'friends_tell:shared_db',
+  'friends_tell:shared_db:v0',
+]
+const BACKUP_DB_KEY = 'friends_tell:shared_db:v1:backup'
 const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
   ? Redis.fromEnv()
   : null
@@ -14,11 +19,80 @@ function createEmptyDb() {
 }
 
 function normalizeDb(input) {
+  const normalizedHomes = Array.isArray(input?.homes) ? input.homes.map((home) => ({
+    ...home,
+    title: normalizeHomeTitle(home?.title),
+  })) : []
   return {
-    homes: Array.isArray(input?.homes) ? input.homes : [],
+    homes: normalizedHomes,
     posts: input?.posts && typeof input.posts === 'object' ? input.posts : {},
     comments: input?.comments && typeof input.comments === 'object' ? input.comments : {},
   }
+}
+
+function normalizeHomeTitle(title) {
+  const trimmed = (title || '').trim()
+  if (!trimmed) return trimmed
+  const simplified = trimmed.replace(/\s+/g, ' ').toLowerCase()
+  if (simplified === 'ai it 모임') {
+    return 'IT 모임'
+  }
+  return trimmed
+}
+
+function hasContent(db) {
+  const normalized = normalizeDb(db)
+  return (
+    normalized.homes.length > 0 ||
+    Object.keys(normalized.posts).length > 0 ||
+    Object.keys(normalized.comments).length > 0
+  )
+}
+
+function mergeRecordsById(left = [], right = []) {
+  const map = new Map()
+  left.forEach((item) => {
+    if (!item?.id) return
+    map.set(item.id, item)
+  })
+  right.forEach((item) => {
+    if (!item?.id) return
+    const prev = map.get(item.id)
+    if (!prev) {
+      map.set(item.id, item)
+      return
+    }
+    const prevTs = prev.createdAt || 0
+    const nextTs = item.createdAt || 0
+    map.set(item.id, nextTs >= prevTs ? item : prev)
+  })
+  return Array.from(map.values())
+}
+
+function mergeListMap(left = {}, right = {}) {
+  const result = { ...left }
+  Object.entries(right).forEach(([key, value]) => {
+    const rightList = Array.isArray(value) ? value : []
+    const leftList = Array.isArray(result[key]) ? result[key] : []
+    result[key] = mergeRecordsById(leftList, rightList)
+  })
+  return result
+}
+
+function mergeSnapshots(snapshots) {
+  return snapshots.reduce((acc, snapshot) => {
+    const next = normalizeDb(snapshot)
+    const homes = mergeRecordsById(acc.homes, next.homes)
+    return {
+      homes: homes.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
+      posts: mergeListMap(acc.posts, next.posts),
+      comments: mergeListMap(acc.comments, next.comments),
+    }
+  }, createEmptyDb())
+}
+
+function isSameDb(left, right) {
+  return JSON.stringify(normalizeDb(left)) === JSON.stringify(normalizeDb(right))
 }
 
 function parseBody(req) {
@@ -49,7 +123,7 @@ function applyMutation(db, op, payload = {}) {
   const next = normalizeDb(db)
 
   if (op === 'createHome') {
-    const title = (payload.title || '').trim() || '이름 없는 프렌즈홈'
+    const title = normalizeHomeTitle(payload.title) || '이름 없는 프렌즈홈'
     const home = {
       id: homeId(),
       title,
@@ -61,7 +135,7 @@ function applyMutation(db, op, payload = {}) {
 
   if (op === 'updateHome') {
     const targetHomeId = payload.homeId
-    const title = (payload.title || '').trim()
+    const title = normalizeHomeTitle(payload.title)
     const home = next.homes.find((item) => item.id === targetHomeId)
     if (!home) return { db: next, result: null }
     if (title) {
@@ -113,14 +187,51 @@ function applyMutation(db, op, payload = {}) {
   return { db: next, result: null }
 }
 
-async function loadDb() {
-  const raw = await redis.get(DB_KEY)
-  if (!raw) return createEmptyDb()
+async function getDbByKey(key) {
+  const raw = await redis.get(key)
+  if (!raw) return null
   return normalizeDb(raw)
 }
 
+async function persistPrimaryAndBackup(db) {
+  const normalized = normalizeDb(db)
+  await redis.set(PRIMARY_DB_KEY, normalized)
+  await redis.set(BACKUP_DB_KEY, normalized)
+}
+
+async function loadDb() {
+  const keys = [PRIMARY_DB_KEY, ...LEGACY_DB_KEYS, BACKUP_DB_KEY]
+  const collected = []
+  for (const key of keys) {
+    const snapshot = await getDbByKey(key)
+    if (snapshot && hasContent(snapshot)) {
+      collected.push(snapshot)
+    }
+  }
+  if (collected.length === 0) {
+    return createEmptyDb()
+  }
+
+  const merged = mergeSnapshots(collected)
+  const primary = await getDbByKey(PRIMARY_DB_KEY)
+  if (!primary || !isSameDb(primary, merged)) {
+    try {
+      await persistPrimaryAndBackup(merged)
+    } catch (_) {
+      // Self-healing write is best-effort only.
+    }
+  }
+  return merged
+}
+
 async function saveDb(db) {
-  await redis.set(DB_KEY, normalizeDb(db))
+  const next = normalizeDb(db)
+  const current = await getDbByKey(PRIMARY_DB_KEY)
+  if (hasContent(current) && !hasContent(next)) {
+    return current
+  }
+  await persistPrimaryAndBackup(next)
+  return next
 }
 
 export default async function handler(req, res) {
@@ -147,8 +258,8 @@ export default async function handler(req, res) {
       const payload = body?.payload || {}
       const current = await loadDb()
       const { db, result } = applyMutation(current, op, payload)
-      await saveDb(db)
-      return res.status(200).json({ ok: true, data: db, result })
+      const saved = await saveDb(db)
+      return res.status(200).json({ ok: true, data: saved, result })
     } catch (_) {
       return res.status(500).json({ ok: false, error: 'db-mutation-failed' })
     }

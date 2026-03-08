@@ -14,8 +14,11 @@ Accepted
   - 실패/미구성 시: localStorage 자동 폴백
 - 서버리스 API(`api/shared-data.js`)를 추가한다.
   - 저장소: Upstash Redis (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`)
-  - 데이터 키: `friends_tell:shared_db:v1`
+  - 데이터 키: `friends_tell:shared_db:v1` (백업 키: `friends_tell:shared_db:v1:backup`)
   - 지원 연산: `createHome`, `updateHome`, `addPost`, `increaseViews`, `addComment`, 전체 스냅샷 조회
+- 키 복구 전략:
+  - 읽기 시 `v1` + 레거시 키(`friends_tell:shared_db`, `friends_tell:shared_db:v0`) + 백업 키를 병합해 self-healing 한다.
+  - 빈 스냅샷으로 기존 데이터가 덮어써지는 경우를 방지한다.
 - 닉네임 저장은 기존처럼 sessionStorage를 유지한다(개인 입력 편의 목적).
 
 ## 결과

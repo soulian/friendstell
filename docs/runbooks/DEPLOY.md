@@ -45,6 +45,12 @@ npm run preview
 3. 저장소 루트의 `vercel.json`으로 SPA rewrite가 적용된다.
 4. 공용 DB를 쓰려면 Upstash Redis Integration을 연결하고 환경변수를 설정한다.
 
+### 공용 DB 유지 정책 (중요)
+- 재배포 시 공용 DB를 초기화(키 삭제/flush)하지 않는다.
+- API는 기본 키 `friends_tell:shared_db:v1`를 사용하며, 저장 시 `friends_tell:shared_db:v1:backup`도 함께 갱신한다.
+- 읽기 시에는 기본 키 + 레거시 키(`friends_tell:shared_db`, `friends_tell:shared_db:v0`) + 백업 키를 병합해 자동 복구한다.
+- 운영 중 홈 데이터가 비어 보이면 먼저 Upstash 환경변수와 키 접근 권한을 점검한다.
+
 ### SPA 새로고침 처리 (Vercel)
 - `vercel.json`에서 `/api/*`는 API 함수로 유지하고, 나머지 경로는 `index.html`로 폴백한다.
 - 대상 라우트:
@@ -64,6 +70,7 @@ npm run preview
 5. Vercel 라우팅 이슈가 생기면 `vercel.json`의 rewrite 변경 커밋을 우선 롤백한다.
 6. 공용 DB 장애 시 임시 완화: Vercel 환경변수 `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`을 제거/비활성화하면 클라이언트가 localStorage 폴백 모드로 동작한다.
 7. 공용 DB 키(`friends_tell:shared_db:v1`) 스키마를 변경할 때는 `v2` 키를 병행 운영하고 이전 절차를 문서화한다.
+8. 공용 DB 유실 의심 시 `friends_tell:shared_db:v1:backup` 값을 먼저 확인하고, 필요하면 해당 값을 `friends_tell:shared_db:v1`로 복원한다.
 
 ## 환경·시크릿
 
