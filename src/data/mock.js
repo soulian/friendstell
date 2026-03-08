@@ -7,6 +7,7 @@ const REMOTE_RETRY_INTERVAL_MS = 30000
 const PENDING_MUTATIONS_KEY = 'friends_tell_pending_mutations_v1'
 const SHARED_WRITE_ERROR_MESSAGE = '공용 DB 연결 문제로 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.'
 const REMOVED_BOARD_ID_TOKENS = new Set(['test1', 'test2', '테스트1', '테스트2'])
+const REMOVED_HOME_TOKENS = new Set(['test1', 'test2', '테스트1', '테스트2'])
 
 const AI_IT_HOME_ID = 'home_ai_it_meetup'
 const AI_IT_HOME_TITLE = '분당IT 모임'
@@ -188,12 +189,20 @@ function normalizeHomeTitle(title) {
 }
 
 function normalizeSnapshot(snapshot) {
-  const homes = Array.isArray(snapshot?.homes)
+  const normalizedHomes = Array.isArray(snapshot?.homes)
     ? snapshot.homes.map((home) => ({
       ...home,
       title: normalizeHomeTitle(home?.title),
     }))
     : []
+  const removedHomeIds = new Set()
+  const homes = normalizedHomes.filter((home) => {
+    const shouldRemove = isRemovedHome(home)
+    if (shouldRemove && home?.id) {
+      removedHomeIds.add(home.id)
+    }
+    return !shouldRemove
+  })
   const seeded = applyAiSeed({
     homes,
     posts: snapshot?.posts && typeof snapshot.posts === 'object' ? snapshot.posts : {},
@@ -201,13 +210,15 @@ function normalizeSnapshot(snapshot) {
   })
   const posts = {}
   Object.entries(seeded.posts || {}).forEach(([key, list]) => {
-    const [, boardId] = key.split(':')
+    const [homeId, boardId] = key.split(':')
+    if (removedHomeIds.has(homeId) || isRemovedHomeToken(homeId)) return
     if (isRemovedBoardId(boardId)) return
     posts[key] = Array.isArray(list) ? list : []
   })
   const comments = {}
   Object.entries(seeded.comments || {}).forEach(([key, list]) => {
-    const [, boardId] = key.split(':')
+    const [homeId, boardId] = key.split(':')
+    if (removedHomeIds.has(homeId) || isRemovedHomeToken(homeId)) return
     if (isRemovedBoardId(boardId)) return
     comments[key] = Array.isArray(list) ? list : []
   })
@@ -218,13 +229,25 @@ function normalizeSnapshot(snapshot) {
   }
 }
 
+function normalizeRemovedToken(value) {
+  if (typeof value !== 'string') return ''
+  return value.replace(/\s+/g, '').trim().toLowerCase()
+}
+
 function normalizeBoardToken(boardId) {
-  if (typeof boardId !== 'string') return ''
-  return boardId.replace(/\s+/g, '').trim().toLowerCase()
+  return normalizeRemovedToken(boardId)
 }
 
 function isRemovedBoardId(boardId) {
   return REMOVED_BOARD_ID_TOKENS.has(normalizeBoardToken(boardId))
+}
+
+function isRemovedHomeToken(value) {
+  return REMOVED_HOME_TOKENS.has(normalizeRemovedToken(value))
+}
+
+function isRemovedHome(home) {
+  return isRemovedHomeToken(home?.id) || isRemovedHomeToken(home?.title)
 }
 
 function loadHomesFromLocal() {

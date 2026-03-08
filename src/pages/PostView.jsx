@@ -127,6 +127,14 @@ export default function PostView() {
 
       <section className="hitel-comments">
         <h3 className="hitel-title">[ 댓글 ] ({comments.length})</h3>
+        <ul className="hitel-comment-list">
+          {comments.map((c) => (
+            <li key={c.id} className="hitel-comment-item">
+              <span className="hitel-comment-author">{c.author}</span>
+              <span className="hitel-comment-body">{c.body}</span>
+            </li>
+          ))}
+        </ul>
         <form onSubmit={handleSubmitComment} className="hitel-comment-form">
           <label>
             <span>닉네임</span>
@@ -159,14 +167,6 @@ export default function PostView() {
             {submittingComment ? '[ 작성중... ]' : '[ 댓글 쓰기 ]'}
           </button>
         </form>
-        <ul className="hitel-comment-list">
-          {comments.map((c) => (
-            <li key={c.id} className="hitel-comment-item">
-              <span className="hitel-comment-author">{c.author}</span>
-              <span className="hitel-comment-body">{c.body}</span>
-            </li>
-          ))}
-        </ul>
       </section>
     </div>
   )
