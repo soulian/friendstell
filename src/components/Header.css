@@ -13,6 +13,26 @@
   gap: 12px;
 }
 
+.header-sync-banner {
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px dashed var(--hitel-border);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--hitel-text);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.header-sync-banner.is-shared {
+  border-color: #3c7f3c;
+  color: #b6ffb6;
+}
+
+.header-sync-banner.is-local-fallback {
+  border-color: #f59e0b;
+  color: #ffe08a;
+}
+
 .header-title-row {
   display: flex;
   align-items: center;

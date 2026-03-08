@@ -12,6 +12,7 @@ Accepted
 - 클라이언트 데이터 계층(`src/data/mock.js`)을 **공용 API 우선** 구조로 변경한다.
   - 1순위: `/api/shared-data` 호출
   - 실패/미구성 시: localStorage 자동 폴백
+  - 폴백 중 생성한 변경은 outbox(`friends_tell_pending_mutations_v1`)에 저장하고, API 복구 시 자동 재동기화한다.
 - 서버리스 API(`api/shared-data.js`)를 추가한다.
   - 저장소: Upstash Redis (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`)
   - 데이터 키: `friends_tell:shared_db:v1` (백업 키: `friends_tell:shared_db:v1:backup`)

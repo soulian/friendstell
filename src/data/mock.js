@@ -4,6 +4,7 @@ const NICKNAME_KEY = 'friends_tell_nickname'
 const SHARED_API_ENDPOINT = '/api/shared-data'
 const SHARED_SYNC_TTL_MS = 5000
 const REMOTE_RETRY_INTERVAL_MS = 30000
+const PENDING_MUTATIONS_KEY = 'friends_tell_pending_mutations_v1'
 
 const AI_IT_HOME_ID = 'home_ai_it_meetup'
 const AI_IT_HOME_TITLE = 'AI IT 모임 프렌즈홈'
@@ -112,9 +113,11 @@ export const OPERATOR_PASSWORD = 'village2024'
 
 let cache = loadLocalSnapshot()
 let syncPromise = null
+let flushPromise = null
 let lastSyncedAt = 0
 let lastRemoteAttemptAt = 0
 let remoteStatus = 'unknown' // unknown | enabled | disabled
+let lastRemoteError = ''
 
 function now() {
   return Date.now()
@@ -183,6 +186,58 @@ function saveDataToLocal(data) {
   } catch (_) {}
 }
 
+function loadPendingMutations() {
+  try {
+    const raw = localStorage.getItem(PENDING_MUTATIONS_KEY)
+    if (!raw) return []
+    const list = JSON.parse(raw)
+    if (!Array.isArray(list)) return []
+    return list.filter((item) => item && typeof item === 'object')
+  } catch (_) {
+    return []
+  }
+}
+
+function mutationKey(op, payload = {}) {
+  if (payload?.id) return `${op}:${payload.id}`
+  if (payload?.homeId && op === 'updateHome') {
+    return `${op}:${payload.homeId}:${payload.title || ''}`
+  }
+  return `${op}:${JSON.stringify(payload)}`
+}
+
+function savePendingMutations(list) {
+  try {
+    localStorage.setItem(PENDING_MUTATIONS_KEY, JSON.stringify(list))
+  } catch (_) {}
+}
+
+function hasPendingMutationKey(key) {
+  return loadPendingMutations().some((item) => item?.key === key)
+}
+
+function enqueuePendingMutation(op, payload = {}) {
+  const key = mutationKey(op, payload)
+  if (hasPendingMutationKey(key)) return
+  const list = loadPendingMutations()
+  list.push({
+    key,
+    op,
+    payload,
+    createdAt: now(),
+  })
+  savePendingMutations(list)
+  emitSyncStatusChanged()
+}
+
+function clearPendingMutationKeys(keys = []) {
+  if (!keys.length) return
+  const keySet = new Set(keys)
+  const filtered = loadPendingMutations().filter((item) => !keySet.has(item?.key))
+  savePendingMutations(filtered)
+  emitSyncStatusChanged()
+}
+
 function loadLocalSnapshot() {
   const homes = loadHomesFromLocal()
   const data = loadDataFromLocal()
@@ -204,6 +259,11 @@ function persistSnapshot(snapshot) {
 function emitDataChanged() {
   if (typeof window === 'undefined') return
   window.dispatchEvent(new Event('friends-data-updated'))
+}
+
+function emitSyncStatusChanged() {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event('friends-sync-status-updated'))
 }
 
 function generateHomeId() {
@@ -301,44 +361,128 @@ function applyAiSeed(snapshot) {
   }
 }
 
+function setRemoteConnection(status, errorCode = '') {
+  const changed = remoteStatus !== status || lastRemoteError !== errorCode
+  remoteStatus = status
+  lastRemoteError = errorCode
+  if (changed) {
+    emitSyncStatusChanged()
+  }
+}
+
 async function requestRemoteSnapshot() {
   if (!shouldAttemptRemote()) return null
   try {
     lastRemoteAttemptAt = now()
     const res = await fetch(SHARED_API_ENDPOINT, { method: 'GET' })
-    if (!res.ok) throw new Error('shared-api-get-failed')
+    if (!res.ok) {
+      let errorCode = 'shared-api-get-failed'
+      try {
+        const json = await res.json()
+        if (json?.error) errorCode = json.error
+      } catch (_) {}
+      throw new Error(errorCode)
+    }
     const json = await res.json()
     const snapshot = normalizeSnapshot(json?.data)
-    remoteStatus = 'enabled'
+    setRemoteConnection('enabled', '')
     lastSyncedAt = now()
     persistSnapshot(snapshot)
     return snapshot
-  } catch (_) {
-    remoteStatus = 'disabled'
+  } catch (error) {
+    const nextError = error?.message || 'shared-api-get-failed'
+    setRemoteConnection('disabled', nextError)
     return null
   }
 }
 
-async function runRemoteMutation(op, payload = {}) {
-  if (!shouldAttemptRemote()) return null
-  try {
-    lastRemoteAttemptAt = now()
-    const res = await fetch(SHARED_API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ op, payload }),
-    })
-    if (!res.ok) throw new Error('shared-api-post-failed')
-    const json = await res.json()
-    const snapshot = normalizeSnapshot(json?.data)
-    remoteStatus = 'enabled'
+async function postRemoteMutation(op, payload = {}) {
+  lastRemoteAttemptAt = now()
+  const res = await fetch(SHARED_API_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ op, payload }),
+  })
+  if (!res.ok) {
+    let errorCode = 'shared-api-post-failed'
+    try {
+      const json = await res.json()
+      if (json?.error) errorCode = json.error
+    } catch (_) {}
+    return { ok: false, errorCode }
+  }
+  const json = await res.json()
+  return {
+    ok: true,
+    result: json?.result ?? null,
+    snapshot: normalizeSnapshot(json?.data),
+  }
+}
+
+async function flushPendingMutations() {
+  if (!shouldAttemptRemote()) return false
+  if (flushPromise) return flushPromise
+
+  flushPromise = (async () => {
+    const queue = loadPendingMutations()
+    if (!queue.length) return true
+
+    const completedKeys = []
+    for (const mutation of queue) {
+      const response = await postRemoteMutation(mutation.op, mutation.payload)
+      if (!response.ok) {
+        setRemoteConnection('disabled', response.errorCode)
+        return false
+      }
+      completedKeys.push(mutation.key)
+      if (response.snapshot) {
+        persistSnapshot(response.snapshot)
+      }
+    }
+
+    clearPendingMutationKeys(completedKeys)
+    setRemoteConnection('enabled', '')
     lastSyncedAt = now()
-    persistSnapshot(snapshot)
-    return json?.result ?? null
-  } catch (_) {
-    remoteStatus = 'disabled'
+    return true
+  })()
+
+  try {
+    return await flushPromise
+  } finally {
+    flushPromise = null
+  }
+}
+
+async function runRemoteMutation(op, payload = {}, options = {}) {
+  const { enqueueOnFailure = false } = options
+  if (!shouldAttemptRemote()) {
+    if (enqueueOnFailure) enqueuePendingMutation(op, payload)
+    return null
+  }
+  try {
+    const response = await postRemoteMutation(op, payload)
+    if (!response.ok) {
+      if (enqueueOnFailure) enqueuePendingMutation(op, payload)
+      setRemoteConnection('disabled', response.errorCode)
+      return null
+    }
+
+    setRemoteConnection('enabled', '')
+    lastSyncedAt = now()
+    persistSnapshot(response.snapshot)
+
+    const key = mutationKey(op, payload)
+    clearPendingMutationKeys([key])
+    if (loadPendingMutations().length > 0) {
+      await flushPendingMutations()
+    }
+    return response.result
+  } catch (error) {
+    const nextError = error?.message || 'shared-api-post-failed'
+    if (enqueueOnFailure) enqueuePendingMutation(op, payload)
+    setRemoteConnection('disabled', nextError)
     return null
   }
 }
@@ -353,6 +497,9 @@ async function ensureSynced(options = {}) {
   }
   syncPromise = (async () => {
     await requestRemoteSnapshot()
+    if (remoteStatus === 'enabled' && loadPendingMutations().length > 0) {
+      await flushPendingMutations()
+    }
     return cache
   })()
   try {
@@ -388,6 +535,21 @@ export function setStoredNickname(nick) {
   } catch (_) {}
 }
 
+export function getSyncStatus() {
+  const pendingCount = loadPendingMutations().length
+  const mode = remoteStatus === 'enabled'
+    ? 'shared'
+    : remoteStatus === 'disabled'
+      ? 'local-fallback'
+      : 'checking'
+  return {
+    mode,
+    pendingCount,
+    remoteStatus,
+    lastRemoteError,
+  }
+}
+
 /** 사용자가 만든 프렌즈홈 목록 */
 export async function getHomes() {
   await ensureSynced()
@@ -402,14 +564,14 @@ export async function getHome(homeId) {
 /** 새 프렌즈홈 생성. { title } 필수 */
 export async function createHome({ title }) {
   const nextTitle = normalizeHomeTitle(title) || '이름 없는 프렌즈홈'
-  const remote = await runRemoteMutation('createHome', { title: nextTitle })
-  if (remote) return remote
-
   const home = {
     id: generateHomeId(),
     title: nextTitle,
     createdAt: now(),
   }
+  const remote = await runRemoteMutation('createHome', home, { enqueueOnFailure: true })
+  if (remote) return remote
+
   const homes = [home, ...cache.homes]
   persistSnapshot({ ...cache, homes })
   return home
@@ -418,7 +580,7 @@ export async function createHome({ title }) {
 /** 프렌즈홈 제목 등 수정 */
 export async function updateHome(homeId, { title }) {
   const nextTitle = title === undefined ? undefined : normalizeHomeTitle(title)
-  const remote = await runRemoteMutation('updateHome', { homeId, title: nextTitle })
+  const remote = await runRemoteMutation('updateHome', { homeId, title: nextTitle }, { enqueueOnFailure: true })
   if (remote) return remote
 
   const homes = [...cache.homes]
@@ -447,31 +609,40 @@ export async function getPost(homeId, boardId, postId) {
 }
 
 export async function addPost(homeId, boardId, { title, body, author }) {
-  const payload = {
-    homeId,
-    boardId,
-    title,
-    body,
-    author: author || '익명',
-  }
-  const remote = await runRemoteMutation('addPost', payload)
-  if (remote) return remote
-
-  const key = `${homeId}:${boardId}`
-  const posts = { ...cache.posts }
-  const list = Array.isArray(posts[key]) ? [...posts[key]] : []
   const post = {
     id: generatePostId(),
+    homeId,
+    boardId,
     title,
     body,
     author: author || '익명',
     createdAt: now(),
     views: 0,
   }
-  list.push(post)
+  const remote = await runRemoteMutation('addPost', post, { enqueueOnFailure: true })
+  if (remote) return remote
+
+  const key = `${homeId}:${boardId}`
+  const posts = { ...cache.posts }
+  const list = Array.isArray(posts[key]) ? [...posts[key]] : []
+  list.push({
+    id: post.id,
+    title: post.title,
+    body: post.body,
+    author: post.author,
+    createdAt: post.createdAt,
+    views: post.views,
+  })
   posts[key] = list
   persistSnapshot({ ...cache, posts })
-  return post
+  return {
+    id: post.id,
+    title: post.title,
+    body: post.body,
+    author: post.author,
+    createdAt: post.createdAt,
+    views: post.views,
+  }
 }
 
 export async function increaseViews(homeId, boardId, postId) {
@@ -496,29 +667,35 @@ export async function getComments(homeId, boardId, postId) {
 }
 
 export async function addComment(homeId, boardId, postId, { body, author }) {
-  const payload = {
+  const comment = {
+    id: generateCommentId(),
     homeId,
     boardId,
     postId,
     body,
     author: author || '익명',
+    createdAt: now(),
   }
-  const remote = await runRemoteMutation('addComment', payload)
+  const remote = await runRemoteMutation('addComment', comment, { enqueueOnFailure: true })
   if (remote) return remote
 
   const key = `${homeId}:${boardId}:${postId}`
   const comments = { ...cache.comments }
   const list = Array.isArray(comments[key]) ? [...comments[key]] : []
-  const comment = {
-    id: generateCommentId(),
-    body,
-    author: author || '익명',
-    createdAt: now(),
-  }
-  list.push(comment)
+  list.push({
+    id: comment.id,
+    body: comment.body,
+    author: comment.author,
+    createdAt: comment.createdAt,
+  })
   comments[key] = list
   persistSnapshot({ ...cache, comments })
-  return comment
+  return {
+    id: comment.id,
+    body: comment.body,
+    author: comment.author,
+    createdAt: comment.createdAt,
+  }
 }
 
 function normalizeAuthor(author) {
