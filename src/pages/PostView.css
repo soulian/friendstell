@@ -69,6 +69,10 @@
   margin-bottom: 4px;
 }
 
+.hitel-comment-time {
+  color: #6f80a3;
+}
+
 .hitel-comment-body {
   white-space: pre-wrap;
 }

@@ -13,6 +13,7 @@ import {
   setStoredNickname,
 } from '../data/mock'
 import AuthorName from '../components/AuthorName'
+import { formatRelativeTime } from '../utils/formatRelativeTime'
 import './PostView.css'
 
 export default function PostView() {
@@ -132,6 +133,8 @@ export default function PostView() {
     )
   }
 
+  const postCreatedAtLabel = formatRelativeTime(post.createdAt)
+
   return (
     <div className="post-view hitel-card">
       <nav className="hitel-nav">
@@ -142,6 +145,7 @@ export default function PostView() {
         <h1 className="hitel-post-title">{post.title}</h1>
         <div className="hitel-post-meta">
           <span><AuthorName name={post.author} verified={Boolean(post.authorVerified)} /></span>
+          {postCreatedAtLabel && <span>{postCreatedAtLabel}</span>}
           <span>조회 {post.views || 0}</span>
         </div>
         <div className="hitel-post-body">{post.body}</div>
@@ -150,14 +154,18 @@ export default function PostView() {
       <section className="hitel-comments">
         <h3 className="hitel-title">[ 댓글 ] ({comments.length})</h3>
         <ul className="hitel-comment-list">
-          {comments.map((c) => (
-            <li key={c.id} className="hitel-comment-item">
-              <span className="hitel-comment-author">
-                <AuthorName name={c.author} verified={Boolean(c.authorVerified)} />
-              </span>
-              <span className="hitel-comment-body">{c.body}</span>
-            </li>
-          ))}
+          {comments.map((c) => {
+            const commentCreatedAtLabel = formatRelativeTime(c.createdAt)
+            return (
+              <li key={c.id} className="hitel-comment-item">
+                <span className="hitel-comment-author">
+                  <AuthorName name={c.author} verified={Boolean(c.authorVerified)} />
+                  {commentCreatedAtLabel && <span className="hitel-comment-time"> · {commentCreatedAtLabel}</span>}
+                </span>
+                <span className="hitel-comment-body">{c.body}</span>
+              </li>
+            )
+          })}
         </ul>
         <form onSubmit={handleSubmitComment} className="hitel-comment-form">
           <label>
