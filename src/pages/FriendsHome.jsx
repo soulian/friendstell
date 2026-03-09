@@ -6,6 +6,7 @@ import {
   getHomeAuthorActivity,
   getBoardDisplayName,
 } from '../data/mock'
+import { formatRelativeTime } from '../utils/formatRelativeTime'
 import './FriendsHome.css'
 
 const AVATAR_VARIANTS = [
@@ -72,38 +73,6 @@ function getThemeByWeatherCode(weatherCode, isDaytime) {
   if (rainCodes.has(code)) return { theme: 'day-rain', label: '현재 날씨: 비' }
   if (cloudyCodes.has(code)) return { theme: 'day-cloudy', label: '현재 날씨: 흐림' }
   return { theme: 'day-clear', label: '현재 날씨: 맑음' }
-}
-
-function formatRecentPostTime(createdAt) {
-  const createdAtMs = Number(createdAt)
-  if (!Number.isFinite(createdAtMs)) return ''
-
-  const diffMs = Math.max(0, Date.now() - createdAtMs)
-  const minuteMs = 60 * 1000
-  const hourMs = 60 * minuteMs
-  const dayMs = 24 * hourMs
-  const monthMs = 30 * dayMs
-  const yearMs = 365 * dayMs
-
-  if (diffMs < hourMs) {
-    const minutes = Math.max(1, Math.floor(diffMs / minuteMs))
-    return `${minutes}분 전`
-  }
-  if (diffMs < dayMs) {
-    const hours = Math.floor(diffMs / hourMs)
-    return `${hours}시간 전`
-  }
-  if (diffMs < monthMs) {
-    const days = Math.floor(diffMs / dayMs)
-    return `${days}일 전`
-  }
-  if (diffMs < yearMs) {
-    const months = Math.floor(diffMs / monthMs)
-    return `${months}달 전`
-  }
-
-  const years = Math.floor(diffMs / yearMs)
-  return `${years}년 전`
 }
 
 function isActiveToday(createdAt) {
@@ -344,7 +313,7 @@ export default function FriendsHome() {
                     <span className="friends-home-recent-board">[{getBoardDisplayName(homeId, post.boardId)}]</span>
                     <span className="friends-home-recent-main">
                       <span className="friends-home-recent-title">{post.title}</span>
-                      <span className="friends-home-recent-time">{formatRecentPostTime(post.createdAt)}</span>
+                      <span className="friends-home-recent-time">{formatRelativeTime(post.createdAt)}</span>
                     </span>
                   </Link>
                 </li>
