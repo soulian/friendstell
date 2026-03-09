@@ -89,6 +89,15 @@ const AI_SEED_POSTS = [
     createdAt: Date.parse('2026-03-07T13:10:00+09:00'),
     views: 7,
   },
+  {
+    id: 'seed_claude_code_product_rollout',
+    boardId: 'free',
+    title: '프러덕트 본부에서 클로드 코드 도입, 어떻게 시작할까요?',
+    body: '도입 과정(파일럿→확산), 팀별 운영 방법, 실무 가이드, 바로 쓰는 팁까지 함께 정리해봐요. 실제 시행착오/체크리스트를 댓글로 남겨주세요.',
+    author: 'PM 하린',
+    createdAt: Date.parse('2026-03-07T14:20:00+09:00'),
+    views: 18,
+  },
 ]
 
 const AI_SEED_COMMENTS = [
@@ -131,6 +140,38 @@ const AI_SEED_COMMENTS = [
     body: '좋아요. 백엔드에서는 API 응답 캐시 전략도 같이 공유해볼게요.',
     author: 'BE 도윤',
     createdAt: Date.parse('2026-03-07T11:32:00+09:00'),
+  },
+  {
+    id: 'seed_claude_code_product_rollout_c1',
+    boardId: 'free',
+    postId: 'seed_claude_code_product_rollout',
+    body: '저희는 2주 파일럿으로 시작했어요. PR 요약/리스크 점검만 먼저 적용하고, 효과를 본 뒤 팀 전체로 확장했습니다.',
+    author: 'PM 하린',
+    createdAt: Date.parse('2026-03-07T14:31:00+09:00'),
+  },
+  {
+    id: 'seed_claude_code_product_rollout_c2',
+    boardId: 'free',
+    postId: 'seed_claude_code_product_rollout',
+    body: '방법 팁: 프롬프트 템플릿을 공용 문서로 관리하면 품질 편차가 줄어요. 코드리뷰 기준(성능/보안/테스트)도 같이 고정해두면 좋습니다.',
+    author: 'FE 유나',
+    createdAt: Date.parse('2026-03-07T14:40:00+09:00'),
+  },
+  {
+    id: 'seed_claude_code_product_rollout_c3',
+    boardId: 'free',
+    postId: 'seed_claude_code_product_rollout',
+    body: '가이드는 "요구사항 요약 → 변경 범위 제안 → 테스트 계획 → 커밋 메시지" 순서로 강제하면 온보딩이 빨라집니다.',
+    author: 'BE 도윤',
+    createdAt: Date.parse('2026-03-07T14:46:00+09:00'),
+  },
+  {
+    id: 'seed_claude_code_product_rollout_c4',
+    boardId: 'free',
+    postId: 'seed_claude_code_product_rollout',
+    body: '운영 팁: 배포 전에는 AI 제안 코드만 모아 체크리스트로 한번 더 훑고, 릴리즈 후에는 장애/회귀 지표를 꼭 같이 기록하세요.',
+    author: 'DevOps 태성',
+    createdAt: Date.parse('2026-03-07T14:53:00+09:00'),
   },
 ]
 
