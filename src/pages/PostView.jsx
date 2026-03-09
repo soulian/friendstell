@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
+  getAuthSession,
   getPost,
   getComments,
   addComment,
@@ -11,6 +12,7 @@ import {
   isSharedWriteError,
   setStoredNickname,
 } from '../data/mock'
+import AuthorName from '../components/AuthorName'
 import './PostView.css'
 
 export default function PostView() {
@@ -20,12 +22,23 @@ export default function PostView() {
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [commentNickname, setCommentNickname] = useState('')
+  const [authSession, setAuthSession] = useState(() => getAuthSession())
   const [commentError, setCommentError] = useState('')
   const [loading, setLoading] = useState(true)
   const [submittingComment, setSubmittingComment] = useState(false)
 
   useEffect(() => {
     setCommentNickname(getStoredNickname())
+  }, [])
+
+  useEffect(() => {
+    const handleAuthUpdated = () => {
+      const nextAuth = getAuthSession()
+      setAuthSession(nextAuth)
+      setCommentNickname(nextAuth?.nickname || getStoredNickname())
+    }
+    window.addEventListener('friends-auth-updated', handleAuthUpdated)
+    return () => window.removeEventListener('friends-auth-updated', handleAuthUpdated)
   }, [])
 
   const resolveBoardName = useCallback(async () => {
@@ -74,11 +87,20 @@ export default function PostView() {
     e.preventDefault()
     if (!commentText.trim()) return
     setCommentError('')
-    const author = commentNickname.trim() || '익명'
+    const author = authSession?.nickname || commentNickname.trim() || '익명'
     setSubmittingComment(true)
     try {
       setStoredNickname(author)
-      await addComment(homeId, boardId, postId, { body: commentText.trim(), author })
+      await addComment(homeId, boardId, postId, {
+        body: commentText.trim(),
+        author,
+        authorMeta: authSession
+          ? {
+            userId: authSession.userId,
+            isVerified: true,
+          }
+          : null,
+      })
       const nextComments = await getComments(homeId, boardId, postId)
       setComments(nextComments)
       setCommentText('')
@@ -119,7 +141,7 @@ export default function PostView() {
       <article className="hitel-article">
         <h1 className="hitel-post-title">{post.title}</h1>
         <div className="hitel-post-meta">
-          <span>{post.author}</span>
+          <span><AuthorName name={post.author} verified={Boolean(post.authorVerified)} /></span>
           <span>조회 {post.views || 0}</span>
         </div>
         <div className="hitel-post-body">{post.body}</div>
@@ -130,7 +152,9 @@ export default function PostView() {
         <ul className="hitel-comment-list">
           {comments.map((c) => (
             <li key={c.id} className="hitel-comment-item">
-              <span className="hitel-comment-author">{c.author}</span>
+              <span className="hitel-comment-author">
+                <AuthorName name={c.author} verified={Boolean(c.authorVerified)} />
+              </span>
               <span className="hitel-comment-body">{c.body}</span>
             </li>
           ))}
@@ -141,14 +165,14 @@ export default function PostView() {
             <input
               type="text"
               className="hitel-input"
-              placeholder="닉네임 (미입력 시 익명)"
+              placeholder={authSession ? '로그인 닉네임 자동 사용' : '닉네임 (미입력 시 익명)'}
               value={commentNickname}
               onChange={(e) => {
                 setCommentNickname(e.target.value)
                 setCommentError('')
               }}
               maxLength={20}
-              disabled={submittingComment}
+              disabled={submittingComment || Boolean(authSession)}
             />
           </label>
           <textarea

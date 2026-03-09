@@ -1,11 +1,16 @@
 const HOMES_STORAGE_KEY = 'friends_tell_homes'
 const STORAGE_KEY = 'friends_tell_data'
 const NICKNAME_KEY = 'friends_tell_nickname'
+const USERS_STORAGE_KEY = 'friends_tell_users_v1'
+const AUTH_SESSION_KEY = 'friends_tell_auth_session_v1'
 const SHARED_API_ENDPOINT = '/api/shared-data'
 const SHARED_SYNC_TTL_MS = 5000
 const REMOTE_RETRY_INTERVAL_MS = 30000
 const PENDING_MUTATIONS_KEY = 'friends_tell_pending_mutations_v1'
 const SHARED_WRITE_ERROR_MESSAGE = '공용 DB 연결 문제로 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+const AUTH_LOGIN_ERROR_MESSAGE = '이메일 또는 비밀번호가 올바르지 않습니다.'
+const AUTH_EMAIL_EXISTS_ERROR_MESSAGE = '이미 가입된 이메일입니다.'
+const AUTH_RECOVERY_NOT_FOUND_ERROR_MESSAGE = '입력한 이메일/닉네임과 일치하는 계정을 찾지 못했습니다.'
 const REMOVED_BOARD_ID_TOKENS = new Set(['test1', 'test2', '테스트1', '테스트2'])
 const REMOVED_HOME_TOKENS = new Set(['test1', 'test2', '테스트1', '테스트2'])
 
@@ -172,6 +177,12 @@ function createSharedRequiredError(reason = 'shared-db-unavailable') {
   return error
 }
 
+function createAuthError(code, fallbackMessage = 'auth-error') {
+  const error = new Error(fallbackMessage)
+  error.code = code
+  return error
+}
+
 function shouldAttemptRemote() {
   if (typeof window === 'undefined' || typeof fetch !== 'function') return false
   if (remoteStatus !== 'disabled') return true
@@ -222,11 +233,31 @@ function normalizeSnapshot(snapshot) {
     if (isRemovedBoardId(boardId)) return
     comments[key] = Array.isArray(list) ? list : []
   })
+  const users = Array.isArray(snapshot?.users)
+    ? snapshot.users
+      .map((user) => ({
+        ...user,
+        email: normalizeEmail(user?.email),
+        nickname: normalizeNickname(user?.nickname),
+      }))
+      .filter((user) => user.email && user.nickname)
+    : []
   return {
     homes: seeded.homes,
     posts,
     comments,
+    users,
   }
+}
+
+function normalizeEmail(email) {
+  if (typeof email !== 'string') return ''
+  return email.trim().toLowerCase()
+}
+
+function normalizeNickname(nickname) {
+  if (typeof nickname !== 'string') return ''
+  return nickname.trim()
 }
 
 function normalizeRemovedToken(value) {
@@ -272,9 +303,26 @@ function loadDataFromLocal() {
   return { posts: {}, comments: {} }
 }
 
+function loadUsersFromLocal() {
+  try {
+    const raw = localStorage.getItem(USERS_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (_) {
+    return []
+  }
+}
+
 function saveDataToLocal(data) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch (_) {}
+}
+
+function saveUsersToLocal(users) {
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
   } catch (_) {}
 }
 
@@ -338,14 +386,17 @@ function loadLocalSnapshot() {
       homes: [],
       posts: {},
       comments: {},
+      users: [],
     })
   }
   const homes = loadHomesFromLocal()
   const data = loadDataFromLocal()
+  const users = loadUsersFromLocal()
   return normalizeSnapshot({
     homes,
     posts: data.posts,
     comments: data.comments,
+    users,
   })
 }
 
@@ -355,6 +406,7 @@ function persistSnapshot(snapshot) {
   if (allowsLocalFallback()) {
     saveHomesToLocal(normalized.homes)
     saveDataToLocal({ posts: normalized.posts, comments: normalized.comments })
+    saveUsersToLocal(normalized.users)
   }
   emitDataChanged()
 }
@@ -369,6 +421,11 @@ function emitSyncStatusChanged() {
   window.dispatchEvent(new Event('friends-sync-status-updated'))
 }
 
+function emitAuthChanged() {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event('friends-auth-updated'))
+}
+
 function generateHomeId() {
   return `h_${now()}_${Math.random().toString(36).slice(2, 9)}`
 }
@@ -379,6 +436,10 @@ function generatePostId() {
 
 function generateCommentId() {
   return `c_${now()}_${Math.random().toString(36).slice(2, 9)}`
+}
+
+function generateUserId() {
+  return `u_${now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
 function toBoardKey(homeId, boardId) {
@@ -657,6 +718,9 @@ async function runRemoteMutation(op, payload = {}, options = {}) {
   try {
     const response = await postRemoteMutation(op, payload)
     if (!response.ok) {
+      if (typeof response.errorCode === 'string' && response.errorCode.startsWith('auth-')) {
+        throw createAuthError(response.errorCode)
+      }
       if (enqueueOnFailure) enqueuePendingMutation(op, payload)
       setRemoteConnection('disabled', response.errorCode)
       if (requireSharedWrite && !allowsLocalFallback()) {
@@ -676,6 +740,9 @@ async function runRemoteMutation(op, payload = {}, options = {}) {
     }
     return response.result
   } catch (error) {
+    if (typeof error?.code === 'string' && error.code.startsWith('auth-')) {
+      throw error
+    }
     const nextError = error?.message || 'shared-api-post-failed'
     if (enqueueOnFailure) enqueuePendingMutation(op, payload)
     setRemoteConnection('disabled', nextError)
@@ -720,7 +787,51 @@ export function getBoardDisplayName(homeId, boardId) {
   return BOARD_IDS[boardId] || boardId
 }
 
+function getStoredAuthSessionRaw() {
+  try {
+    const raw = localStorage.getItem(AUTH_SESSION_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    const userId = typeof parsed.userId === 'string' ? parsed.userId : ''
+    const email = normalizeEmail(parsed.email)
+    const nickname = normalizeNickname(parsed.nickname)
+    if (!userId || !email || !nickname) return null
+    return {
+      userId,
+      email,
+      nickname,
+    }
+  } catch (_) {
+    return null
+  }
+}
+
+function setStoredAuthSession(session) {
+  try {
+    if (!session) {
+      localStorage.removeItem(AUTH_SESSION_KEY)
+    } else {
+      localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session))
+    }
+  } catch (_) {}
+}
+
+export function getAuthSession() {
+  const session = getStoredAuthSessionRaw()
+  if (!session) return null
+  return {
+    id: session.userId,
+    ...session,
+    isVerified: true,
+  }
+}
+
 export function getStoredNickname() {
+  const authSession = getStoredAuthSessionRaw()
+  if (authSession?.nickname) {
+    return authSession.nickname
+  }
   try {
     return sessionStorage.getItem(NICKNAME_KEY) || ''
   } catch (_) {
@@ -728,10 +839,126 @@ export function getStoredNickname() {
   }
 }
 
-export function setStoredNickname(nick) {
+function setGuestNicknameSession(nick) {
   try {
     sessionStorage.setItem(NICKNAME_KEY, nick || '')
   } catch (_) {}
+}
+
+export function setStoredNickname(nick) {
+  const authSession = getStoredAuthSessionRaw()
+  if (authSession?.nickname) return
+  setGuestNicknameSession(nick)
+}
+
+function toPublicUser(user) {
+  if (!user) return null
+  return {
+    id: user.id,
+    userId: user.id,
+    email: user.email,
+    nickname: user.nickname,
+    isVerified: true,
+  }
+}
+
+function findUserByEmail(email) {
+  const target = normalizeEmail(email)
+  if (!target) return null
+  return cache.users.find((user) => normalizeEmail(user?.email) === target) || null
+}
+
+export async function registerUser({ email, password, nickname }) {
+  await ensureSynced({ force: true })
+  const normalizedEmail = normalizeEmail(email)
+  const normalizedNickname = normalizeNickname(nickname)
+  const nextPassword = typeof password === 'string' ? password.trim() : ''
+  if (!normalizedEmail || !normalizedNickname || !nextPassword) {
+    throw createAuthError('auth-invalid-input', '회원가입 정보가 올바르지 않습니다.')
+  }
+
+  if (findUserByEmail(normalizedEmail)) {
+    throw createAuthError('auth-email-exists', AUTH_EMAIL_EXISTS_ERROR_MESSAGE)
+  }
+
+  const user = {
+    id: generateUserId(),
+    email: normalizedEmail,
+    password: nextPassword,
+    nickname: normalizedNickname,
+    createdAt: now(),
+  }
+  const remote = await runRemoteMutation('registerUser', user, { requireSharedWrite: true })
+  if (remote) {
+    setStoredAuthSession({
+      userId: remote.id,
+      email: remote.email,
+      nickname: remote.nickname,
+    })
+    setGuestNicknameSession(remote.nickname)
+    emitAuthChanged()
+    return toPublicUser(remote)
+  }
+
+  const users = [user, ...(cache.users || [])]
+  persistSnapshot({ ...cache, users })
+  setStoredAuthSession({
+    userId: user.id,
+    email: user.email,
+    nickname: user.nickname,
+  })
+  setGuestNicknameSession(user.nickname)
+  emitAuthChanged()
+  return toPublicUser(user)
+}
+
+export async function loginUser({ email, password }) {
+  await ensureSynced({ force: true })
+  const normalizedEmail = normalizeEmail(email)
+  const nextPassword = typeof password === 'string' ? password.trim() : ''
+  const user = findUserByEmail(normalizedEmail)
+  if (!user || user.password !== nextPassword) {
+    throw createAuthError('auth-login-failed', AUTH_LOGIN_ERROR_MESSAGE)
+  }
+
+  setStoredAuthSession({
+    userId: user.id,
+    email: user.email,
+    nickname: user.nickname,
+  })
+  setGuestNicknameSession(user.nickname)
+  emitAuthChanged()
+  return toPublicUser(user)
+}
+
+export function logoutUser() {
+  const authSession = getStoredAuthSessionRaw()
+  if (authSession?.nickname) {
+    setGuestNicknameSession(authSession.nickname)
+  }
+  setStoredAuthSession(null)
+  emitAuthChanged()
+}
+
+export async function recoverPassword({ email, nickname }) {
+  await ensureSynced({ force: true })
+  const normalizedEmail = normalizeEmail(email)
+  const normalizedNickname = normalizeNickname(nickname)
+  const user = cache.users.find(
+    (item) => normalizeEmail(item?.email) === normalizedEmail && normalizeNickname(item?.nickname) === normalizedNickname
+  )
+  if (!user) {
+    throw createAuthError('auth-recovery-not-found', AUTH_RECOVERY_NOT_FOUND_ERROR_MESSAGE)
+  }
+  return user.password || ''
+}
+
+export function getAuthErrorMessage(error) {
+  if (error?.code === 'auth-email-exists') return AUTH_EMAIL_EXISTS_ERROR_MESSAGE
+  if (error?.code === 'auth-login-failed') return AUTH_LOGIN_ERROR_MESSAGE
+  if (error?.code === 'auth-recovery-not-found') return AUTH_RECOVERY_NOT_FOUND_ERROR_MESSAGE
+  if (error?.code === 'auth-invalid-input') return '입력값을 다시 확인해 주세요.'
+  return '인증 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'
 }
 
 export function getSyncStatus() {
@@ -807,7 +1034,7 @@ export async function getPost(homeId, boardId, postId) {
   return list.find((p) => p.id === postId) || null
 }
 
-export async function addPost(homeId, boardId, { title, body, author }) {
+export async function addPost(homeId, boardId, { title, body, author, authorMeta }) {
   const post = {
     id: generatePostId(),
     homeId,
@@ -815,6 +1042,8 @@ export async function addPost(homeId, boardId, { title, body, author }) {
     title,
     body,
     author: author || '익명',
+    authorId: authorMeta?.userId || null,
+    authorVerified: Boolean(authorMeta?.isVerified),
     createdAt: now(),
     views: 0,
   }
@@ -829,6 +1058,8 @@ export async function addPost(homeId, boardId, { title, body, author }) {
     title: post.title,
     body: post.body,
     author: post.author,
+    authorId: post.authorId,
+    authorVerified: post.authorVerified,
     createdAt: post.createdAt,
     views: post.views,
   })
@@ -839,6 +1070,8 @@ export async function addPost(homeId, boardId, { title, body, author }) {
     title: post.title,
     body: post.body,
     author: post.author,
+    authorId: post.authorId,
+    authorVerified: post.authorVerified,
     createdAt: post.createdAt,
     views: post.views,
   }
@@ -865,7 +1098,7 @@ export async function getComments(homeId, boardId, postId) {
   return [...list].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
 }
 
-export async function addComment(homeId, boardId, postId, { body, author }) {
+export async function addComment(homeId, boardId, postId, { body, author, authorMeta }) {
   const comment = {
     id: generateCommentId(),
     homeId,
@@ -873,6 +1106,8 @@ export async function addComment(homeId, boardId, postId, { body, author }) {
     postId,
     body,
     author: author || '익명',
+    authorId: authorMeta?.userId || null,
+    authorVerified: Boolean(authorMeta?.isVerified),
     createdAt: now(),
   }
   const remote = await runRemoteMutation('addComment', comment, { enqueueOnFailure: true, requireSharedWrite: true })
@@ -885,6 +1120,8 @@ export async function addComment(homeId, boardId, postId, { body, author }) {
     id: comment.id,
     body: comment.body,
     author: comment.author,
+    authorId: comment.authorId,
+    authorVerified: comment.authorVerified,
     createdAt: comment.createdAt,
   })
   comments[key] = list
@@ -893,6 +1130,8 @@ export async function addComment(homeId, boardId, postId, { body, author }) {
     id: comment.id,
     body: comment.body,
     author: comment.author,
+    authorId: comment.authorId,
+    authorVerified: comment.authorVerified,
     createdAt: comment.createdAt,
   }
 }

@@ -1,0 +1,19 @@
+.author-name-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.author-name-inline .author-verified-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: #1d9bf0;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+}

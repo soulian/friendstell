@@ -77,6 +77,7 @@ npm run preview
 4. **주의**: `src/data/mock.js` 스키마·키 변경 시 기존 사용자 localStorage와 불일치할 수 있음. 필요 시 마이그레이션 또는 안내 문구 고려.
    - 현재 버전은 기본 시드 홈(`home_ai_it_meetup`)과 시드 게시글/댓글을 자동 보정한다. 롤백 시 시드 데이터 노출 방식(자동 주입 여부)을 함께 확인한다.
    - outbox 재동기화 키(`friends_tell_pending_mutations_v1`)가 남아 있을 수 있으므로, 구버전으로 롤백 시 재시도 동작 차이가 없는지 확인한다.
+   - 인증 기능 롤백 시 회원정보 키(`friends_tell_users_v1`)와 로그인 세션 키(`friends_tell_auth_session_v1`)는 구버전에서 사용되지 않는다. 필요하면 사용자 안내 후 수동 정리(브라우저 저장소 초기화)한다.
 5. Vercel 라우팅 이슈가 생기면 `vercel.json`의 rewrite 변경 커밋을 우선 롤백한다.
 6. 공용 DB 장애 시 임시 완화: Vercel 환경변수 `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`을 제거/비활성화하면 클라이언트가 localStorage 폴백 모드로 동작한다.
 7. 공용 DB 키(`friends_tell:shared_db:v1`) 스키마를 변경할 때는 `v2` 키를 병행 운영하고 이전 절차를 문서화한다.

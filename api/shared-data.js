@@ -16,6 +16,7 @@ function createEmptyDb() {
     homes: [],
     posts: {},
     comments: {},
+    users: [],
   }
 }
 
@@ -36,11 +37,26 @@ function normalizeDb(input) {
     if (isRemovedBoardId(boardId)) return
     normalizedComments[key] = Array.isArray(list) ? list : []
   })
+  const normalizedUsers = Array.isArray(input?.users)
+    ? input.users
+      .map((user) => ({
+        ...user,
+        email: normalizeEmail(user?.email),
+        nickname: typeof user?.nickname === 'string' ? user.nickname.trim() : '',
+      }))
+      .filter((user) => user.email && user.nickname)
+    : []
   return {
     homes: normalizedHomes,
     posts: normalizedPosts,
     comments: normalizedComments,
+    users: normalizedUsers,
   }
+}
+
+function normalizeEmail(email) {
+  if (typeof email !== 'string') return ''
+  return email.trim().toLowerCase()
 }
 
 function normalizeBoardToken(boardId) {
@@ -67,7 +83,8 @@ function hasContent(db) {
   return (
     normalized.homes.length > 0 ||
     Object.keys(normalized.posts).length > 0 ||
-    Object.keys(normalized.comments).length > 0
+    Object.keys(normalized.comments).length > 0 ||
+    normalized.users.length > 0
   )
 }
 
@@ -101,14 +118,33 @@ function mergeListMap(left = {}, right = {}) {
   return result
 }
 
+function mergeUsersByEmail(left = [], right = []) {
+  const map = new Map()
+  ;[...left, ...right].forEach((user) => {
+    const email = normalizeEmail(user?.email)
+    if (!email) return
+    const prev = map.get(email)
+    if (!prev) {
+      map.set(email, user)
+      return
+    }
+    const prevTs = prev?.createdAt || 0
+    const nextTs = user?.createdAt || 0
+    map.set(email, nextTs >= prevTs ? user : prev)
+  })
+  return Array.from(map.values())
+}
+
 function mergeSnapshots(snapshots) {
   return snapshots.reduce((acc, snapshot) => {
     const next = normalizeDb(snapshot)
     const homes = mergeRecordsById(acc.homes, next.homes)
+    const users = mergeUsersByEmail(acc.users, next.users)
     return {
       homes: homes.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
       posts: mergeListMap(acc.posts, next.posts),
       comments: mergeListMap(acc.comments, next.comments),
+      users: users.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
     }
   }, createEmptyDb())
 }
@@ -146,6 +182,11 @@ function postId(providedId) {
 function commentId(providedId) {
   if (typeof providedId === 'string' && providedId.trim()) return providedId.trim()
   return `c_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+}
+
+function userId(providedId) {
+  if (typeof providedId === 'string' && providedId.trim()) return providedId.trim()
+  return `u_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
 function applyMutation(db, op, payload = {}) {
@@ -195,6 +236,8 @@ function applyMutation(db, op, payload = {}) {
       title: payload.title || '',
       body: payload.body || '',
       author: payload.author || '익명',
+      authorId: payload.authorId || null,
+      authorVerified: Boolean(payload.authorVerified),
       createdAt: nextTimestamp(payload.createdAt),
       views: Number.isFinite(payload.views) ? payload.views : 0,
     }
@@ -232,6 +275,8 @@ function applyMutation(db, op, payload = {}) {
       id,
       body: payload.body || '',
       author: payload.author || '익명',
+      authorId: payload.authorId || null,
+      authorVerified: Boolean(payload.authorVerified),
       createdAt: nextTimestamp(payload.createdAt),
     }
     list.push(comment)
@@ -239,7 +284,29 @@ function applyMutation(db, op, payload = {}) {
     return { db: next, result: comment }
   }
 
-  return { db: next, result: null }
+  if (op === 'registerUser') {
+    const email = normalizeEmail(payload.email)
+    const nickname = typeof payload.nickname === 'string' ? payload.nickname.trim() : ''
+    const password = typeof payload.password === 'string' ? payload.password : ''
+    if (!email || !nickname || !password) {
+      return { db: next, result: null, errorCode: 'auth-invalid-input' }
+    }
+    const existingByEmail = next.users.find((user) => normalizeEmail(user?.email) === email)
+    if (existingByEmail) {
+      return { db: next, result: null, errorCode: 'auth-email-exists' }
+    }
+    const user = {
+      id: userId(payload.id),
+      email,
+      password,
+      nickname,
+      createdAt: nextTimestamp(payload.createdAt),
+    }
+    next.users = [user, ...next.users]
+    return { db: next, result: user }
+  }
+
+  return { db: next, result: null, errorCode: '' }
 }
 
 async function getDbByKey(key) {
@@ -312,7 +379,10 @@ export default async function handler(req, res) {
       const op = body?.op
       const payload = body?.payload || {}
       const current = await loadDb()
-      const { db, result } = applyMutation(current, op, payload)
+      const { db, result, errorCode } = applyMutation(current, op, payload)
+      if (errorCode) {
+        return res.status(409).json({ ok: false, error: errorCode })
+      }
       const saved = await saveDb(db)
       return res.status(200).json({ ok: true, data: saved, result })
     } catch (_) {
