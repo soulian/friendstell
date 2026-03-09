@@ -13,6 +13,13 @@
   gap: 12px;
 }
 
+.header-right-controls {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .header-brand-wrap {
   display: inline-flex;
   align-items: center;
@@ -61,6 +68,12 @@
   margin: 8px 0 0;
   font-size: 12px;
   color: #ff9a9a;
+}
+
+.header-auth-message {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #b6ffb6;
 }
 
 .header-title-row {
@@ -143,6 +156,111 @@
   border-color: var(--hitel-highlight-yellow);
 }
 
+.header-auth {
+  position: relative;
+}
+
+.header-auth-logged-in {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-auth-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--hitel-text-bright);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.author-verified-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: #1d9bf0;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.header-auth-open-btn,
+.header-auth-logout-btn {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.header-auth-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 280px;
+  padding: 10px;
+  border: 1px solid var(--hitel-border);
+  background: var(--hitel-paper);
+  z-index: 120;
+}
+
+.header-auth-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.header-auth-tab {
+  flex: 1;
+  font-family: var(--hitel-font);
+  font-size: 11px;
+  padding: 5px 4px;
+  border: 1px solid var(--hitel-border);
+  background: var(--hitel-input-bg);
+  color: var(--hitel-text);
+  cursor: pointer;
+}
+
+.header-auth-tab.is-active {
+  border-color: var(--hitel-highlight-yellow);
+  color: var(--hitel-highlight-yellow);
+}
+
+.header-auth-form label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.header-auth-form label span {
+  display: block;
+  font-size: 12px;
+  color: var(--hitel-text);
+}
+
+.header-auth-form .hitel-input {
+  margin-top: 3px;
+}
+
+.header-auth-form .hitel-btn {
+  width: 100%;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.header-auth-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #ff9a9a;
+}
+
+.header-auth-recovered-password {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--hitel-highlight-yellow);
+}
+
 .retro-logo {
   font-family: var(--hitel-font);
   font-size: 1.1rem;
@@ -157,7 +275,7 @@
 
 .apt-dropdown {
   position: relative;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .apt-dropdown-trigger {
@@ -231,6 +349,12 @@
 }
 
 @media (max-width: 860px) {
+  .header-right-controls {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
   .header-title-row {
     flex-basis: 100%;
     order: 3;
@@ -238,6 +362,10 @@
 
   .apt-dropdown {
     margin-left: 0;
-    order: 2;
+  }
+
+  .header-auth-panel {
+    right: auto;
+    left: 0;
   }
 }

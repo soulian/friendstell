@@ -5,7 +5,13 @@ import {
   getHome,
   getSyncStatus,
   updateHome,
+  getAuthErrorMessage,
+  getAuthSession,
   getSharedWriteErrorMessage,
+  loginUser,
+  logoutUser,
+  recoverPassword,
+  registerUser,
   isSharedWriteError,
 } from '../data/mock'
 import './Header.css'
@@ -32,7 +38,28 @@ export default function Header() {
   const [editTitleValue, setEditTitleValue] = useState('')
   const [titleEditError, setTitleEditError] = useState('')
   const [savingTitle, setSavingTitle] = useState(false)
+  const [authSession, setAuthSession] = useState(() => getAuthSession())
+  const [authOpen, setAuthOpen] = useState(false)
+  const [authMode, setAuthMode] = useState('login')
+  const [authError, setAuthError] = useState('')
+  const [authMessage, setAuthMessage] = useState('')
+  const [authSubmitting, setAuthSubmitting] = useState(false)
+  const [recoveredPassword, setRecoveredPassword] = useState('')
+  const [loginForm, setLoginForm] = useState({
+    email: '',
+    password: '',
+  })
+  const [signupForm, setSignupForm] = useState({
+    email: '',
+    password: '',
+    nickname: '',
+  })
+  const [recoveryForm, setRecoveryForm] = useState({
+    email: '',
+    nickname: '',
+  })
   const ref = useRef(null)
+  const authRef = useRef(null)
   const listRef = useRef(null)
 
   const loadHeaderData = useCallback(async () => {
@@ -52,6 +79,7 @@ export default function Header() {
   useEffect(() => {
     function close(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+      if (authRef.current && !authRef.current.contains(e.target)) setAuthOpen(false)
     }
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
@@ -81,6 +109,14 @@ export default function Header() {
     }
     window.addEventListener('friends-sync-status-updated', handleSyncStatusUpdated)
     return () => window.removeEventListener('friends-sync-status-updated', handleSyncStatusUpdated)
+  }, [])
+
+  useEffect(() => {
+    const handleAuthUpdated = () => {
+      setAuthSession(getAuthSession())
+    }
+    window.addEventListener('friends-auth-updated', handleAuthUpdated)
+    return () => window.removeEventListener('friends-auth-updated', handleAuthUpdated)
   }, [])
 
   const handleShare = (e) => {
@@ -155,6 +191,107 @@ export default function Header() {
     }
   }
 
+  const handleAuthModeChange = (mode) => {
+    setAuthMode(mode)
+    setAuthError('')
+    setAuthMessage('')
+    setRecoveredPassword('')
+  }
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault()
+    const email = loginForm.email.trim()
+    const password = loginForm.password.trim()
+    if (!email || !password) {
+      setAuthError('이메일과 비밀번호를 입력해 주세요.')
+      return
+    }
+
+    setAuthSubmitting(true)
+    setAuthError('')
+    setAuthMessage('')
+    try {
+      const user = await loginUser({ email, password })
+      setAuthSession(user)
+      setAuthOpen(false)
+      setAuthMessage(`${user.nickname}님, 환영합니다.`)
+      setLoginForm({ email: '', password: '' })
+    } catch (error) {
+      setAuthError(getAuthErrorMessage(error))
+    } finally {
+      setAuthSubmitting(false)
+    }
+  }
+
+  const handleSignupSubmit = async (e) => {
+    e.preventDefault()
+    const email = signupForm.email.trim()
+    const password = signupForm.password.trim()
+    const nickname = signupForm.nickname.trim()
+    if (!email || !password || !nickname) {
+      setAuthError('이메일, 비밀번호, 닉네임을 모두 입력해 주세요.')
+      return
+    }
+    if (!email.includes('@')) {
+      setAuthError('올바른 이메일 형식으로 입력해 주세요.')
+      return
+    }
+    if (password.length < 4) {
+      setAuthError('비밀번호는 4자 이상 입력해 주세요.')
+      return
+    }
+
+    setAuthSubmitting(true)
+    setAuthError('')
+    setAuthMessage('')
+    try {
+      const user = await registerUser({ email, password, nickname })
+      setAuthSession(user)
+      setAuthOpen(false)
+      setAuthMessage(`${user.nickname}님, 가입과 로그인이 완료되었습니다.`)
+      setSignupForm({ email: '', password: '', nickname: '' })
+    } catch (error) {
+      if (isSharedWriteError(error)) {
+        setAuthError(getSharedWriteErrorMessage())
+      } else {
+        setAuthError(getAuthErrorMessage(error))
+      }
+    } finally {
+      setAuthSubmitting(false)
+    }
+  }
+
+  const handleRecoverySubmit = async (e) => {
+    e.preventDefault()
+    const email = recoveryForm.email.trim()
+    const nickname = recoveryForm.nickname.trim()
+    if (!email || !nickname) {
+      setAuthError('이메일과 닉네임을 입력해 주세요.')
+      return
+    }
+
+    setAuthSubmitting(true)
+    setAuthError('')
+    setRecoveredPassword('')
+    setAuthMessage('')
+    try {
+      const password = await recoverPassword({ email, nickname })
+      setRecoveredPassword(password)
+    } catch (error) {
+      setAuthError(getAuthErrorMessage(error))
+    } finally {
+      setAuthSubmitting(false)
+    }
+  }
+
+  const handleLogout = () => {
+    logoutUser()
+    setAuthSession(null)
+    setAuthMessage('로그아웃되었습니다. 비회원 닉네임으로도 작성할 수 있습니다.')
+    setAuthError('')
+    setRecoveredPassword('')
+  }
+
   return (
     <header className="hitel-header">
       <div className="retro-header-inner">
@@ -221,56 +358,245 @@ export default function Header() {
           )}
         </div>
 
-        <div className="apt-dropdown" ref={ref} onKeyDown={handleKeyDown}>
-          <button
-            type="button"
-            className="apt-dropdown-trigger"
-            onClick={() => setOpen(!open)}
-            aria-expanded={open}
-            aria-haspopup="listbox"
-            aria-label="프렌즈홈 선택"
-          >
-            <span className="apt-name">
-              {loadingHomes
-                ? '불러오는 중...'
-                : currentHome
-                  ? currentHome.title
-                  : (homes.length ? '프렌즈홈 선택' : '메뉴')}
-            </span>
-            <span className="apt-arrow">{open ? '▲' : '▼'}</span>
-          </button>
-          {open && (
-            <ul className="apt-dropdown-menu" ref={listRef} role="listbox">
-              {homes.map((home) => (
-                <li key={home.id}>
+        <div className="header-right-controls">
+          <div className="header-auth" ref={authRef}>
+            {authSession ? (
+              <div className="header-auth-logged-in">
+                <span className="header-auth-user">
+                  {authSession.nickname}
+                  <span className="author-verified-icon" aria-label="인증 사용자" title="인증 사용자">
+                    ✓
+                  </span>
+                </span>
+                <button type="button" className="hitel-btn header-auth-logout-btn" onClick={handleLogout}>
+                  로그아웃
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="hitel-btn header-auth-open-btn"
+                  onClick={() => setAuthOpen((prev) => !prev)}
+                  aria-expanded={authOpen}
+                  aria-haspopup="dialog"
+                >
+                  로그인/회원가입
+                </button>
+                {authOpen && (
+                  <div className="header-auth-panel" role="dialog" aria-label="로그인 및 회원가입">
+                    <div className="header-auth-tabs">
+                      <button
+                        type="button"
+                        className={`header-auth-tab ${authMode === 'login' ? 'is-active' : ''}`}
+                        onClick={() => handleAuthModeChange('login')}
+                      >
+                        로그인
+                      </button>
+                      <button
+                        type="button"
+                        className={`header-auth-tab ${authMode === 'signup' ? 'is-active' : ''}`}
+                        onClick={() => handleAuthModeChange('signup')}
+                      >
+                        회원가입
+                      </button>
+                      <button
+                        type="button"
+                        className={`header-auth-tab ${authMode === 'recovery' ? 'is-active' : ''}`}
+                        onClick={() => handleAuthModeChange('recovery')}
+                      >
+                        비밀번호 찾기
+                      </button>
+                    </div>
+
+                    {authMode === 'login' && (
+                      <form className="header-auth-form" onSubmit={handleLoginSubmit}>
+                        <label>
+                          <span>이메일</span>
+                          <input
+                            type="email"
+                            className="hitel-input"
+                            value={loginForm.email}
+                            onChange={(e) => {
+                              setLoginForm((prev) => ({ ...prev, email: e.target.value }))
+                              setAuthError('')
+                            }}
+                            autoComplete="email"
+                            disabled={authSubmitting}
+                          />
+                        </label>
+                        <label>
+                          <span>비밀번호</span>
+                          <input
+                            type="password"
+                            className="hitel-input"
+                            value={loginForm.password}
+                            onChange={(e) => {
+                              setLoginForm((prev) => ({ ...prev, password: e.target.value }))
+                              setAuthError('')
+                            }}
+                            autoComplete="current-password"
+                            disabled={authSubmitting}
+                          />
+                        </label>
+                        <button type="submit" className="hitel-btn" disabled={authSubmitting}>
+                          {authSubmitting ? '처리중...' : '로그인'}
+                        </button>
+                      </form>
+                    )}
+
+                    {authMode === 'signup' && (
+                      <form className="header-auth-form" onSubmit={handleSignupSubmit}>
+                        <label>
+                          <span>이메일</span>
+                          <input
+                            type="email"
+                            className="hitel-input"
+                            value={signupForm.email}
+                            onChange={(e) => {
+                              setSignupForm((prev) => ({ ...prev, email: e.target.value }))
+                              setAuthError('')
+                            }}
+                            autoComplete="email"
+                            disabled={authSubmitting}
+                          />
+                        </label>
+                        <label>
+                          <span>비밀번호</span>
+                          <input
+                            type="password"
+                            className="hitel-input"
+                            value={signupForm.password}
+                            onChange={(e) => {
+                              setSignupForm((prev) => ({ ...prev, password: e.target.value }))
+                              setAuthError('')
+                            }}
+                            autoComplete="new-password"
+                            disabled={authSubmitting}
+                          />
+                        </label>
+                        <label>
+                          <span>닉네임</span>
+                          <input
+                            type="text"
+                            className="hitel-input"
+                            value={signupForm.nickname}
+                            onChange={(e) => {
+                              setSignupForm((prev) => ({ ...prev, nickname: e.target.value }))
+                              setAuthError('')
+                            }}
+                            maxLength={20}
+                            disabled={authSubmitting}
+                          />
+                        </label>
+                        <button type="submit" className="hitel-btn" disabled={authSubmitting}>
+                          {authSubmitting ? '처리중...' : '회원가입'}
+                        </button>
+                      </form>
+                    )}
+
+                    {authMode === 'recovery' && (
+                      <form className="header-auth-form" onSubmit={handleRecoverySubmit}>
+                        <label>
+                          <span>이메일</span>
+                          <input
+                            type="email"
+                            className="hitel-input"
+                            value={recoveryForm.email}
+                            onChange={(e) => {
+                              setRecoveryForm((prev) => ({ ...prev, email: e.target.value }))
+                              setAuthError('')
+                              setRecoveredPassword('')
+                            }}
+                            autoComplete="email"
+                            disabled={authSubmitting}
+                          />
+                        </label>
+                        <label>
+                          <span>닉네임</span>
+                          <input
+                            type="text"
+                            className="hitel-input"
+                            value={recoveryForm.nickname}
+                            onChange={(e) => {
+                              setRecoveryForm((prev) => ({ ...prev, nickname: e.target.value }))
+                              setAuthError('')
+                              setRecoveredPassword('')
+                            }}
+                            maxLength={20}
+                            disabled={authSubmitting}
+                          />
+                        </label>
+                        <button type="submit" className="hitel-btn" disabled={authSubmitting}>
+                          {authSubmitting ? '조회중...' : '비밀번호 확인'}
+                        </button>
+                        {recoveredPassword && (
+                          <p className="header-auth-recovered-password">
+                            비밀번호: <strong>{recoveredPassword}</strong>
+                          </p>
+                        )}
+                      </form>
+                    )}
+
+                    {authError && <p className="header-auth-error">{authError}</p>}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="apt-dropdown" ref={ref} onKeyDown={handleKeyDown}>
+            <button
+              type="button"
+              className="apt-dropdown-trigger"
+              onClick={() => setOpen(!open)}
+              aria-expanded={open}
+              aria-haspopup="listbox"
+              aria-label="프렌즈홈 선택"
+            >
+              <span className="apt-name">
+                {loadingHomes
+                  ? '불러오는 중...'
+                  : currentHome
+                    ? currentHome.title
+                    : (homes.length ? '프렌즈홈 선택' : '메뉴')}
+              </span>
+              <span className="apt-arrow">{open ? '▲' : '▼'}</span>
+            </button>
+            {open && (
+              <ul className="apt-dropdown-menu" ref={listRef} role="listbox">
+                {homes.map((home) => (
+                  <li key={home.id}>
+                    <Link
+                      to={`/home/${home.id}`}
+                      className={home.id === homeId ? 'current' : ''}
+                      onClick={() => setOpen(false)}
+                      role="option"
+                      aria-selected={home.id === homeId}
+                      tabIndex={0}
+                    >
+                      {home.title}
+                    </Link>
+                  </li>
+                ))}
+                <li className="apt-dropdown-create">
                   <Link
-                    to={`/home/${home.id}`}
-                    className={home.id === homeId ? 'current' : ''}
+                    to="/create"
+                    className="create-link"
                     onClick={() => setOpen(false)}
                     role="option"
-                    aria-selected={home.id === homeId}
                     tabIndex={0}
                   >
-                    {home.title}
+                    + 새 프렌즈홈 만들기
                   </Link>
                 </li>
-              ))}
-              <li className="apt-dropdown-create">
-                <Link
-                  to="/create"
-                  className="create-link"
-                  onClick={() => setOpen(false)}
-                  role="option"
-                  tabIndex={0}
-                >
-                  + 새 프렌즈홈 만들기
-                </Link>
-              </li>
-            </ul>
-          )}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
       {titleEditError && <p className="header-title-error">{titleEditError}</p>}
+      {authMessage && <p className="header-auth-message">{authMessage}</p>}
       <div className={`header-sync-banner is-${syncStatus.mode}`}>
         {syncStatus.mode === 'shared'
           ? '공용DB 연결됨: 친구와 같은 프렌즈홈/게시판 데이터를 보고 있어요.'

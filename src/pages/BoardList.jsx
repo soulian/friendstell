@@ -5,6 +5,7 @@ import {
   getHome,
   getComments,
 } from '../data/mock'
+import AuthorName from '../components/AuthorName'
 import './BoardList.css'
 
 export default function BoardList() {
@@ -81,7 +82,9 @@ export default function BoardList() {
             posts.map((post, i) => (
               <tr key={post.id}>
                 <td>{posts.length - i}</td>
-                <td>{post.author}</td>
+                <td>
+                  <AuthorName name={post.author} verified={Boolean(post.authorVerified)} />
+                </td>
                 <td>
                   <Link to={`/home/${homeId}/board/${boardId}/post/${post.id}`}>
                     {post.title}

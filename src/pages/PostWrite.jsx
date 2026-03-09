@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   addPost,
   checkOperatorPassword,
+  getAuthSession,
   getSharedWriteErrorMessage,
   getStoredNickname,
   isSharedWriteError,
@@ -18,6 +19,7 @@ export default function PostWrite() {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [nickname, setNickname] = useState('')
+  const [authSession, setAuthSession] = useState(() => getAuthSession())
   const [operatorPw, setOperatorPw] = useState('')
   const [operatorError, setOperatorError] = useState('')
   const [submitError, setSubmitError] = useState('')
@@ -28,6 +30,18 @@ export default function PostWrite() {
     if (!isNotice) {
       setNickname(getStoredNickname())
     }
+  }, [isNotice])
+
+  useEffect(() => {
+    const handleAuthUpdated = () => {
+      const nextAuth = getAuthSession()
+      setAuthSession(nextAuth)
+      if (!isNotice) {
+        setNickname(nextAuth?.nickname || getStoredNickname())
+      }
+    }
+    window.addEventListener('friends-auth-updated', handleAuthUpdated)
+    return () => window.removeEventListener('friends-auth-updated', handleAuthUpdated)
   }, [isNotice])
 
   const handleSubmit = async (e) => {
@@ -60,12 +74,18 @@ export default function PostWrite() {
         })
         navigate(`/home/${homeId}/board/${boardId}/post/${post.id}`)
       } else {
-        const author = nickname.trim() || '익명'
+        const author = authSession?.nickname || nickname.trim() || '익명'
         setStoredNickname(author)
         const post = await addPost(homeId, boardId, {
           title: title.trim(),
           body: body.trim(),
           author,
+          authorMeta: authSession
+            ? {
+              userId: authSession.userId,
+              isVerified: true,
+            }
+            : null,
         })
         navigate(`/home/${homeId}/board/${boardId}/post/${post.id}`)
       }
@@ -89,7 +109,11 @@ export default function PostWrite() {
         <p className="hitel-hint">공지사항은 운영자 비밀번호 입력 후 작성할 수 있습니다.</p>
       )}
       {!isNotice && (
-        <p className="hitel-hint">닉네임을 입력하면 해당 이름으로 글이 등록됩니다.</p>
+        <p className="hitel-hint">
+          {authSession
+            ? `로그인 사용자(${authSession.nickname})로 작성됩니다. 인증 배지가 함께 표시됩니다.`
+            : '닉네임을 입력하면 해당 이름으로 글이 등록됩니다.'}
+        </p>
       )}
 
       <form onSubmit={handleSubmit} className="hitel-write-form">
@@ -122,14 +146,14 @@ export default function PostWrite() {
                 <input
                   type="text"
                   className="hitel-input"
-                  placeholder="닉네임 (미입력 시 익명)"
+                  placeholder={authSession ? '로그인 닉네임 자동 사용' : '닉네임 (미입력 시 익명)'}
                   value={nickname}
                   onChange={(e) => {
                     setNickname(e.target.value)
                     setSubmitError('')
                   }}
                   maxLength={20}
-                  disabled={submitting}
+                  disabled={submitting || Boolean(authSession)}
                 />
               </label>
             )}
