@@ -119,6 +119,21 @@ export default function Header() {
     return () => window.removeEventListener('friends-auth-updated', handleAuthUpdated)
   }, [])
 
+  useEffect(() => {
+    const handleAuthOpenRequest = (event) => {
+      const mode = event?.detail?.mode
+      if (mode === 'signup' || mode === 'login' || mode === 'recovery') {
+        setAuthMode(mode)
+      }
+      setAuthError('')
+      setAuthMessage('')
+      setRecoveredPassword('')
+      setAuthOpen(true)
+    }
+    window.addEventListener('friends-auth-open-request', handleAuthOpenRequest)
+    return () => window.removeEventListener('friends-auth-open-request', handleAuthOpenRequest)
+  }, [])
+
   const handleShare = (e) => {
     e.preventDefault()
     const url = window.location.origin + pathname
