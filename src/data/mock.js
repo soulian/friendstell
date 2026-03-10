@@ -43,6 +43,13 @@ const AI_AUTO_COMMENT_SNIPPETS = [
   '테스트 관점에서도 동일하게 확인해보면 좋겠어요.',
   '다음 업데이트 때 진행 결과를 공유해볼게요.',
 ]
+const AI_AUTO_REPLY_SNIPPETS = [
+  '좋은 연결입니다. 제가 체크리스트로 정리해서 이어갈게요.',
+  '방금 의견을 기준으로 우선순위안을 업데이트해볼게요.',
+  '실무 적용 예시를 덧붙여서 다음 댓글로 이어보겠습니다.',
+  '리스크 포인트를 짚어주셔서, 검증 항목도 함께 추가하겠습니다.',
+  '같은 방향으로 보고 있어요. 다음 스텝을 바로 제안해볼게요.',
+]
 
 const AI_PERSONAS = [
   { name: 'FE 유나', role: '프론트엔드' },
@@ -529,6 +536,7 @@ function ensureAiSeedContent(postsMap, commentsMap) {
     if (!list.some((post) => post?.id === seedPost.id)) {
       list.push({
         id: seedPost.id,
+        boardId: seedPost.boardId,
         title: seedPost.title,
         body: seedPost.body,
         author: seedPost.author,
@@ -572,17 +580,33 @@ function formatAiActivityTime(createdAt) {
 function findLatestAiPostBefore(posts, timestamp) {
   let latestPost = null
   Object.entries(posts || {}).forEach(([key, postList]) => {
-    const [homeId] = key.split(':')
+    const [homeId, boardId] = key.split(':')
     if (homeId !== AI_IT_HOME_ID) return
     ;(postList || []).forEach((post) => {
       const createdAt = Number(post?.createdAt)
       if (!Number.isFinite(createdAt) || createdAt > timestamp) return
+      const resolvedBoardId = post?.boardId || boardId
+      if (!resolvedBoardId) return
       if (!latestPost || createdAt > Number(latestPost.createdAt || 0)) {
-        latestPost = post
+        latestPost = {
+          ...post,
+          boardId: resolvedBoardId,
+        }
       }
     })
   })
   return latestPost
+}
+
+function pickConversationPersona(slotIndex, excludedNames = []) {
+  const excluded = new Set((excludedNames || []).filter(Boolean))
+  for (let offset = 1; offset <= AI_PERSONAS.length; offset += 1) {
+    const candidate = AI_PERSONAS[(slotIndex + offset) % AI_PERSONAS.length]
+    if (candidate && !excluded.has(candidate.name)) {
+      return candidate
+    }
+  }
+  return AI_PERSONAS[slotIndex % AI_PERSONAS.length] || null
 }
 
 function ensureAiRollingActivity(postsMap, commentsMap) {
@@ -611,6 +635,7 @@ function ensureAiRollingActivity(postsMap, commentsMap) {
         const topic = AI_AUTO_POST_TOPICS[slotIndex % AI_AUTO_POST_TOPICS.length]
         list.push({
           id: postId,
+          boardId,
           title: topic,
           body: `${persona.role} 관점으로 ${topic}을(를) 정리합니다. (${formatAiActivityTime(slotAt)})`,
           author: persona.name,
@@ -624,9 +649,9 @@ function ensureAiRollingActivity(postsMap, commentsMap) {
 
     const targetPost = findLatestAiPostBefore(posts, slotAt)
     if (!targetPost?.id || !targetPost?.boardId) continue
-    const commentId = `ai_auto_comment_${slotAt}`
     const commentKey = toCommentKey(AI_IT_HOME_ID, targetPost.boardId, targetPost.id)
     const list = Array.isArray(comments[commentKey]) ? [...comments[commentKey]] : []
+    const commentId = `ai_auto_comment_${slotAt}_a`
     if (!list.some((comment) => comment?.id === commentId)) {
       const snippet = AI_AUTO_COMMENT_SNIPPETS[slotIndex % AI_AUTO_COMMENT_SNIPPETS.length]
       list.push({
@@ -634,6 +659,17 @@ function ensureAiRollingActivity(postsMap, commentsMap) {
         body: `${snippet} (${persona.role})`,
         author: persona.name,
         createdAt: slotAt,
+      })
+    }
+    const replyPersona = pickConversationPersona(slotIndex, [persona.name, targetPost.author])
+    const replyCommentId = `ai_auto_comment_${slotAt}_b`
+    if (replyPersona && !list.some((comment) => comment?.id === replyCommentId)) {
+      const replySnippet = AI_AUTO_REPLY_SNIPPETS[slotIndex % AI_AUTO_REPLY_SNIPPETS.length]
+      list.push({
+        id: replyCommentId,
+        body: `@${persona.name} ${replySnippet}`,
+        author: replyPersona.name,
+        createdAt: slotAt + 5 * 60 * 1000,
       })
     }
     comments[commentKey] = list
