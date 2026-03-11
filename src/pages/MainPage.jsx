@@ -52,7 +52,7 @@ export default function MainPage() {
           키보드 1~5, N, Enter, ↑↓, Tab, Esc 단축키도 그대로 사용할 수 있습니다.
         </p>
         <div className="main-page-guide-home">
-          <h2 className="hitel-section-community">[ 프렌즈홈 예시 ]</h2>
+          <p className="main-page-guide-home-label">프렌즈홈 예시</p>
           <Link
             to={`/home/${GUIDE_HOME_ID}`}
             className="main-page-guide-home-image-link"
