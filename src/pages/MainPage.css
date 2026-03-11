@@ -7,6 +7,32 @@
   margin-bottom: 0;
 }
 
+.main-page-guide-home {
+  margin-top: 14px;
+  border: 1px dashed var(--hitel-border);
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.main-page-guide-home-desc {
+  margin: 0 0 10px;
+  color: var(--hitel-text);
+}
+
+.main-page-guide-home-message {
+  margin: 10px 0 0;
+  color: var(--hitel-text);
+}
+
+.main-page-guide-home-link {
+  color: var(--hitel-link);
+}
+
+.main-page-guide-home-error {
+  margin: 10px 0 0;
+  color: #af2f2f;
+}
+
 .main-page-auth-desc {
   margin: 0 0 12px;
   color: var(--hitel-text);
