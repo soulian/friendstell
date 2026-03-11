@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import MainPage from './pages/MainPage'
 import FriendsHome from './pages/FriendsHome'
@@ -19,6 +19,7 @@ export default function App() {
         <Route path="home/:homeId/board/:boardId" element={<BoardList />} />
         <Route path="home/:homeId/board/:boardId/post/:postId" element={<PostView />} />
         <Route path="home/:homeId/board/:boardId/write" element={<PostWrite />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   )
