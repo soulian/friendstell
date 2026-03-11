@@ -311,7 +311,15 @@ export default function Header() {
     <header className="hitel-header">
       <div className="retro-header-inner">
         <div className="header-brand-wrap">
-          <Link to="/" className="retro-logo" aria-label="프렌즈텔 메인으로 이동">
+          <Link
+            to="/"
+            className="retro-logo"
+            aria-label="프렌즈텔 메인으로 이동"
+            onClick={() => {
+              setOpen(false)
+              setAuthOpen(false)
+            }}
+          >
             🏘 프렌즈텔
           </Link>
           {previewBadgeVisible && (
