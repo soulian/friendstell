@@ -307,11 +307,16 @@ export default function Header() {
     setRecoveredPassword('')
   }
 
+  const handleLogoClick = () => {
+    setOpen(false)
+    setAuthOpen(false)
+  }
+
   return (
     <header className="hitel-header">
       <div className="retro-header-inner">
         <div className="header-brand-wrap">
-          <Link to="/" className="retro-logo" aria-label="프렌즈텔 메인으로 이동">
+          <Link to="/" className="retro-logo" aria-label="프렌즈텔 메인으로 이동" onClick={handleLogoClick}>
             🏘 프렌즈텔
           </Link>
           {previewBadgeVisible && (

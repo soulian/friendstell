@@ -14,49 +14,22 @@
   background: rgba(255, 255, 255, 0.35);
 }
 
-.main-page-guide-home-desc {
-  margin: 0 0 10px;
-  color: var(--hitel-text);
-}
-
-.main-page-guide-home-list {
-  list-style: none;
+.main-page-guide-home-image-link {
+  display: block;
   margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
-
-.main-page-guide-home-item {
   border: 1px solid var(--hitel-border);
   background: rgba(255, 255, 255, 0.6);
-  padding: 8px 10px;
+  text-decoration: none;
+  overflow: hidden;
 }
 
-.main-page-guide-home-title {
-  margin: 0;
-  color: var(--hitel-link);
-  font-size: 14px;
+.main-page-guide-home-image-link:hover {
+  border-color: var(--hitel-highlight-yellow);
 }
 
-.main-page-guide-home-summary {
-  margin: 6px 0 0;
-  color: var(--hitel-text);
-}
-
-.main-page-guide-home-post-list {
-  margin: 8px 0 0;
-  padding-left: 16px;
-}
-
-.main-page-guide-home-post-item {
-  margin-bottom: 4px;
-  color: var(--hitel-text);
-}
-
-.main-page-guide-home-tip {
-  margin: 10px 0 0;
-  color: var(--hitel-text);
+.main-page-guide-home-image {
+  width: 100%;
+  display: block;
 }
 
 .main-page-auth-desc {
