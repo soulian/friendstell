@@ -9,9 +9,11 @@
 
 .main-page-guide-home {
   margin-top: 14px;
-  border: 1px dashed var(--hitel-border);
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.35);
+}
+
+.main-page-guide-home-label {
+  margin: 0 0 8px;
+  color: var(--hitel-text);
 }
 
 .main-page-guide-home-image-link {
